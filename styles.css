@@ -30,3 +30,14 @@
 .business-live .map-preview{margin-top:13px}
 .business-live .order-actions{margin-top:14px}
 @media(min-width:680px){.mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.mode-tile{min-height:127px}.mode-tile-title{flex-wrap:wrap}.mode-tile-title strong{width:100%;margin-left:0}}
+
+
+/* Registro de domiciliarios y aprobación administrativa */
+.courier-admin-card{padding:18px;margin-bottom:12px}
+.courier-admin-card .inline-between{align-items:flex-start}
+.courier-admin-card .block-small{display:block;margin-top:4px;font-size:12px;overflow-wrap:anywhere}
+.courier-detail{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:#65577a;font-size:13px;margin:14px 0 7px}
+.courier-detail svg{color:var(--purple)}
+.courier-admin-card .order-actions{justify-content:flex-end}
+.courier-admin-card .order-actions button{flex:0 1 auto}
+@media(max-width:420px){.courier-admin-card .inline-between{gap:8px}.courier-admin-card .badge{white-space:nowrap;font-size:10px}}
