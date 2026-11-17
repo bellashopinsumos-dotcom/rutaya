@@ -178,3 +178,43 @@
 .admin-history li{font-size:12px;line-height:1.45;margin:8px 0;overflow-wrap:anywhere}
 .tracking-title+.gps-pill{margin-left:8px}
 @media(max-width:430px){.courier-gps-card .order-actions .button{flex:1 1 125px}.courier-gps-card .gps-pill{font-size:10px}}
+
+
+/* RutaYa fase 24 — entregas verificadas, flota, caja y soporte */
+.fleet-map{width:100%;height:350px;position:relative;overflow:hidden;border:1px solid #dacced;background:#eee9f5;border-radius:16px;margin:15px 0 10px;z-index:0}
+.fleet-map .leaflet-container{height:100%;min-height:350px;font:inherit}
+.fleet-map .ry-map-loading{min-height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px;color:#604d71;font-size:13px;line-height:1.6}
+.ops-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:15px 0}
+.ops-shortcuts button{min-height:48px;white-space:normal;line-height:1.35;justify-content:center;text-align:center}
+.delivery-code-card{background:#f2edfc;border:2px dashed #a57cde;text-align:center;border-radius:16px;padding:20px;margin:14px 0}
+.delivery-code-card span,.delivery-code-card small{display:block;font-size:12px;color:#5b4574}
+.delivery-code-card strong{display:block;font-size:35px;letter-spacing:.2em;color:#51248b;font-weight:900;font-variant-numeric:tabular-nums;margin:9px 0}
+.delivery-code-card small{line-height:1.5}
+.finance-payout{padding:15px 0;border-top:1px solid #e8deef}
+.finance-payout:first-of-type{border-top:0}
+.finance-payout b,.finance-payout small{display:block}
+.finance-payout small{font-size:11px;line-height:1.5;margin:4px 0 12px;color:#756586}
+.finance-payout .order-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.finance-payout .order-actions input{flex:1 1 105px;max-width:155px;min-width:80px;margin:0}
+.finance-payout .order-actions button{flex:1 1 auto}
+.payout-row{padding:12px 0;border-bottom:1px solid #eee4f4;font-size:12px}
+.payout-row:last-child{border-bottom:0}
+.courier-checks{background:#faf8fc;border:1px solid #e9e0ef;border-radius:13px;padding:12px;margin:13px 0}
+.courier-checks>b{display:block;margin-bottom:8px;font-size:12px}
+.courier-checks label{display:flex;align-items:flex-start;gap:8px;margin:9px 0;font-size:12px;line-height:1.45;font-weight:550;cursor:pointer}
+.courier-checks input[type=checkbox]{width:18px;min-width:18px;height:18px;accent-color:#6f35b9;padding:0}
+.courier-checks input[type=text]{width:100%;margin:9px 0;font-size:12px}
+.courier-checks .field-help{margin:9px 0 0}
+.route-group{padding:15px 0;border-top:1px solid #eee4f4}
+.route-group b{display:block;font-size:14px}
+.route-group p{margin:7px 0;font-size:12px;line-height:1.5}
+.route-group .button{margin:6px 7px 6px 0}
+.nav-bottom .nav-inner{overflow-x:auto;justify-content:space-around;scrollbar-width:none}
+.nav-bottom .nav-inner::-webkit-scrollbar{display:none}
+.nav-bottom .nav-inner>button{min-width:56px;flex:1}
+@media(max-width:450px){
+ .fleet-map{height:295px}.fleet-map .leaflet-container{min-height:295px}
+ .ops-shortcuts .button{font-size:12px;padding:10px 8px}
+ .delivery-code-card strong{font-size:29px;letter-spacing:.13em}
+ .route-group .button{width:100%;margin:5px 0}
+}
