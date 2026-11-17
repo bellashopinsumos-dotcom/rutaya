@@ -151,7 +151,7 @@ function stalledNote(o){
 function orderManageButtons(o,role){
  const buttons=[];
  const canCancel=!['delivered','cancelled'].includes(o.status)&&(
-  isAdmin()&&role==='admin'&&['pending','accepted','at_pickup'].includes(o.status)
+  isAdmin()&&role==='admin'
   ||role==='negocios'&&['pending','accepted','at_pickup'].includes(o.status)
   ||role==='cliente'&&o.status==='pending');
  if(canCancel)buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="cancel">'+icon('close',16)+' Cancelar</button>');
@@ -169,10 +169,11 @@ function manageOrderModal(){
  const operation=model.manageAction;
  const isCancel=operation==='cancel',isRelease=operation==='release',isAssign=operation==='assign';
  const title=isCancel?'Cancelar domicilio':isRelease?'Liberar servicio':isAssign?'Asignar domiciliario':'Devolver a disponibles';
- const description=isCancel?'El pedido pasará a cancelado y ya no se podrá aceptar. Si el paquete fue recogido, contacta a administración.':
+ const afterPickup=isCancel&&isAdmin()&&['picked_up','at_dropoff'].includes(o.status);
+ const description=isCancel?(afterPickup?'Este pedido YA FUE RECOGIDO. La cancelación detendrá el servicio en RutaYa, pero NO devuelve el paquete, no reembolsa dinero ni avisa automáticamente al domiciliario. Contacta al repartidor y a la clienta para acordar la devolución.':'El pedido pasará a cancelado y ya no se podrá aceptar. Esta acción queda registrada en el historial.'):
   isRelease?'El domicilio regresará a la lista de disponibles para que otro repartidor pueda tomarlo.':isAssign?'Selecciona un domiciliario aprobado. Solo se puede asignar o cambiar antes de recoger el paquete.':'El pedido volverá a disponibles y se retirará del repartidor anterior. Solo es posible antes de recoger el paquete.';
  return modal(title,'<p>'+description+'</p><p><strong>'+e(o.items_description)+'</strong></p>'+(isAssign?'<label for="ry-manage-courier">Domiciliario aprobado</label><select id="ry-manage-courier"><option value="">Selecciona un repartidor</option>'+model.couriers.filter(x=>x.approved).map(c=>'<option value="'+e(c.user_id)+'">'+e(c.display_name||c.email||'Domiciliario')+'</option>').join('')+'</select>':'')+'<label for="ry-manage-reason">Motivo del cambio</label><textarea id="ry-manage-reason" rows="3" maxlength="200" placeholder="Ej. El cliente cambió de planes / el domiciliario no puede continuar" required></textarea><p class="field-help">Este cambio quedará registrado. Confirma primero con las personas involucradas.</p>',
- '<button class="button outline" data-act="closeManage">Volver</button><button class="button '+(isCancel?'danger':'primary')+'" data-act="confirmManage" data-id="'+e(o.id)+'">'+icon('check',17)+' Confirmar</button>');
+ '<button class="button outline" data-act="closeManage">Volver</button><button class="button '+(isCancel?'danger':'primary')+'" data-act="confirmManage" data-id="'+e(o.id)+'">'+icon('check',17)+' '+(afterPickup?'Cancelar pedido recogido':isCancel?'Cancelar pedido':'Confirmar')+'</button>');
 }
 function adminOrderCard(o){
  const pending=o.status==='pending';
@@ -400,6 +401,10 @@ if(!/^3\d{9}$/.test(phoneDigits)&&!/^573\d{9}$/.test(phoneDigits))
  const op=model.manageAction;
  const reason=document.getElementById('ry-manage-reason')?.value.trim()||'';
  if(reason.length<5)throw Error('Escribe un motivo de al menos cinco caracteres');
+ const order=model.orders.find(x=>x.id===id);
+ if(op==='cancel'&&isAdmin()&&['picked_up','at_dropoff'].includes(order?.status)){
+  if(!confirm('ATENCIÓN: el paquete ya fue recogido. ¿Confirmas que quieres cancelar administrativamente? Deberás coordinar la devolución y cualquier pago directamente.'))return;
+ }
  model.sending=true;b.disabled=true;
  try{
   if(op==='cancel')await data.cancelOrder(id,reason);
