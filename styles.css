@@ -156,3 +156,25 @@
 .admin-order-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
 .admin-order-filter .button{flex:1 1 115px;justify-content:center;min-height:39px}
 @media(max-width:460px){.admin-order-filter{gap:6px}.admin-order-filter .button{flex:1 1 30%;font-size:12px;padding:9px 8px}}
+
+
+/* RutaYa v23 · Seguimiento GPS y control de pedidos de administración */
+.courier-gps-card{background:#f8f5ff;border-color:#d9c9ed;box-shadow:none}
+.courier-gps-card .inline-between{align-items:flex-start;gap:10px}
+.courier-gps-card .inline-between h3{display:flex;align-items:center;gap:7px;font-size:15px;margin:0 0 5px}
+.courier-gps-card .inline-between p{font-size:12px;line-height:1.5;margin:0;color:#665a79}
+.courier-gps-card .order-actions{margin:14px 0}
+.gps-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;white-space:nowrap;border-radius:20px;font-size:11px;font-weight:800;background:#f2edfa;color:#66527b}
+.gps-pill:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.gps-live{background:#e7f6ee;color:#23734c}
+.gps-awaiting{background:#fff4df;color:#946422}
+.gps-off,.gps-delayed{background:#f1eff3;color:#706877}
+.gps-warning{padding:10px 12px;background:#fff0e3;border:1px solid #efcaa1;color:#8b4611;border-radius:12px;margin-top:10px;font-size:12px;line-height:1.45}
+.admin-custody{display:flex;align-items:flex-start;gap:11px;padding:13px;background:#fff4e8;border:1px solid #e9b76e;border-radius:12px;color:#854d12;font-size:13px;font-weight:800;line-height:1.45;margin-top:16px}
+.admin-custody input{width:19px;min-width:19px;height:19px;accent-color:#7a3bce;margin:0}
+.admin-history{background:#f6f2fa;border:1px solid #e5dcf0;border-radius:12px;padding:13px;margin-top:14px}
+.admin-history strong{font-size:14px}
+.admin-history ol{padding-left:20px;margin:14px 0 0}
+.admin-history li{font-size:12px;line-height:1.45;margin:8px 0;overflow-wrap:anywhere}
+.tracking-title+.gps-pill{margin-left:8px}
+@media(max-width:430px){.courier-gps-card .order-actions .button{flex:1 1 125px}.courier-gps-card .gps-pill{font-size:10px}}
