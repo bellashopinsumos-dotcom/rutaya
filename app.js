@@ -106,6 +106,36 @@ function inviteFormContent(){
  '<p class="field-help">El precio del domicilio se calculará cuando la clienta seleccione su zona. Los Enrutados tienen horario de despacho programado.</p>';
 }
 
+
+function recipientInvitationPage(){
+ const i=model.invitation;
+ if(!i)return '<div class="card"><h2>Enlace no encontrado</h2><p>Revisa el enlace que te envió la tienda o solicita uno nuevo.</p></div>';
+ if(i.status==='completed')return '<div class="card recipient-success">'+icon('check',40)+'<h1>¡Datos enviados!</h1><p>'+e(i.business_name||'La tienda')+' ya recibió tus datos. Tu domicilio quedó registrado en RutaYa.</p>'+
+ (i.tracking_token?'<a class="button primary wide" href="'+e(url('seguimiento/?token='+encodeURIComponent(i.tracking_token)))+'">'+icon('route',18)+' Consultar mi domicilio</a>':'')+'</div>';
+ if(i.status==='revoked'||i.status==='expired')return '<div class="card"><h1>Este enlace ya no está disponible</h1><p>'+e(i.status==='expired'?'Pasaron 48 horas desde que la tienda lo creó.':'La tienda desactivó este enlace.')+' Pídele un enlace nuevo para completar tu entrega.</p></div>';
+ const d=model.draft;
+ const options=model.zones.map(z=>'<option value="'+e(z.name)+'" '+(d.dropoff_zone===z.name?'selected':'')+'>'+e(z.name)+(z.is_example===false?'':' · tarifa de prueba')+'</option>').join('');
+ return '<div class="recipient-head"><span class="eyebrow">ENTREGA DE TU PEDIDO</span><h1>¿Dónde recibes tu pedido?</h1>'+
+ '<p>'+e(i.business_name)+' te invita a indicar tus datos para que el domiciliario llegue a tu dirección.</p></div>'+
+ '<div class="card"><h3>'+icon('shop',19)+' '+e(i.business_name)+'</h3><p><b>Tu pedido:</b> '+e(i.items_description)+'</p>'+
+ '<p class="field-help">'+(i.paid?'Producto pagado.':'Producto pendiente de pago: '+money(i.amount_to_collect)+'.')+' Modalidad: '+e(modeName(i.delivery_mode))+'.</p></div>'+
+ '<section class="card recipient-form"><h2>Completa tus datos</h2>'+
+ '<label for="invite-recipient-name">Nombre de quien recibe</label>'+
+ '<input id="invite-recipient-name" name="recipient_name" autocomplete="name" maxlength="180" placeholder="Nombre y apellido" value="'+e(d.recipient_name||'')+'">'+
+ '<label for="invite-recipient-phone">Celular de contacto</label>'+
+ '<input id="invite-recipient-phone" type="tel" name="recipient_phone" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="3XXXXXXXXX" value="'+e(d.recipient_phone||'')+'">'+
+ pickerButton('dropoff','Ubicación donde quieres recibir',d)+
+ '<label for="invite-dropoff-zone">¿En qué zona o sector de Popayán estás?</label>'+
+ '<select id="invite-dropoff-zone" name="dropoff_zone"><option value="">Selecciona tu zona</option>'+options+'</select>'+
+ '<div class="location-card space"><div class="inline-between"><span>Costo del domicilio</span><strong class="big-price">'+money(data.estimateFee(model.zones,d.dropoff_zone,i.delivery_mode))+'</strong></div>'+
+ '<small>'+e(zoneEstimateNote(d.dropoff_zone))+' Consulta el costo con la tienda si tienes dudas.</small></div>'+
+ '<label for="invite-delivery-notes">Referencias para encontrar tu casa (opcional)</label>'+
+ '<textarea id="invite-delivery-notes" name="delivery_notes" maxlength="500" rows="2" placeholder="Ej. Casa de rejas negras, apartamento 302">'+e(d.delivery_notes||'')+'</textarea>'+
+ '<p class="field-help">Al confirmar, enviarás estos datos a '+e(i.business_name)+' y al domiciliario asignado para realizar la entrega.</p>'+
+ '<button class="button primary wide" data-act="completeInvite">'+icon('check',18)+' Confirmar mi dirección y enviar datos</button>'+
+ '<p class="field-help">No necesitas registrarte. Este formulario solo puede enviarse una vez.</p></section>';
+}
+
 function isAdmin(){return Boolean(model.profile?.is_admin||model.profile?.role==='admin')}
 function inactiveMinutes(o){return Math.max(0,Math.floor((Date.now()-new Date(o.updated_at||o.created_at).getTime())/60000))}
 function stalled(o){
