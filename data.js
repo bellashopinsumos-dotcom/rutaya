@@ -233,3 +233,13 @@ export async function verifyCourier(userId,identity,vehicle,notes=''){
  });
  if(error)throw error;
 }
+
+
+export async function adminAssignRoute(ids,courierId,reason){
+ if(!isLive)throw Error('Necesitas conexión con RutaYa');
+ const {data,error}=await api.rpc('admin_assign_rutaya_route',{
+  p_order_ids:ids,p_courier_id:courierId,p_reason:reason
+ });
+ if(error)throw error;
+ return data;
+}
