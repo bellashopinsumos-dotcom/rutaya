@@ -28,3 +28,23 @@ export async function updateCourierLocation(point){if(!point||point.accuracy>100
 export async function setOrderFee(id,fee){if(!isLive){let d=read(),o=d.orders.find(x=>x.id===id);if(!o)throw Error('Pedido no encontrado');o.fee=fee;write(d);return}const {error}=await api.rpc('admin_set_rutaya_fee',{p_order_id:id,p_fee:fee});if(error)throw error}
 export function distance(a,b){const toRad=Math.PI/180,x=(b.lat-a.lat)*toRad,y=(b.lng-a.lng)*toRad;const h=Math.sin(x/2)**2+Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(y/2)**2;return 6371000*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h))}
 export function getClient(){return api}
+
+export async function requestCourier(phone,vehicle){
+ if(!isLive)throw Error('El registro de repartidores necesita Supabase');
+ if(!api)throw Error('No hay conexión con RutaYa');
+ const {data,error}=await api.rpc('request_rutaya_courier',{p_phone:phone,p_vehicle:vehicle});
+ if(error)throw error;
+ return data;
+}
+export async function listCouriers(){
+ if(!isLive)return [];
+ const {data,error}=await api.rpc('list_rutaya_couriers');
+ if(error)throw error;
+ return data||[];
+}
+export async function reviewCourier(userId,approve){
+ if(!isLive)throw Error('Necesitas conexión para aprobar repartidores');
+ const {error}=await api.rpc('review_rutaya_courier',{p_user_id:userId,p_approve:approve});
+ if(error)throw error;
+}
+
