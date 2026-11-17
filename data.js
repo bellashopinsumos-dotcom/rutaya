@@ -167,3 +167,69 @@ export async function adminOrderHistory(id){
  if(error)throw error;
  return data||[];
 }
+
+
+export async function confirmDelivery(orderId,code,location){
+ if(!isLive)throw Error('La verificación de entrega necesita conexión a RutaYa');
+ const {data,error}=await api.rpc('confirm_rutaya_delivery',{
+  p_order:orderId,p_code:String(code||''),p_lat:location.lat,p_lng:location.lng,p_accuracy:location.accuracy
+ });
+ if(error)throw error;
+ if(!data)throw Error('El código no coincide. Pide a la clienta que consulte los seis números de su seguimiento. Máximo cinco intentos.');
+ return data;
+}
+export async function fleetLocations(){
+ if(!isLive)return [];
+ const {data,error}=await api.rpc('admin_fleet_locations');
+ if(error)throw error;
+ return data||[];
+}
+export async function adminStatistics(days=30){
+ if(!isLive)return {days,orders:read().orders.length};
+ const {data,error}=await api.rpc('admin_rutaya_stats',{p_days:days});
+ if(error)throw error;
+ return data||{};
+}
+export async function courierCashSummary(){
+ if(!isLive)return {};
+ const {data,error}=await api.rpc('courier_rutaya_cash_summary');
+ if(error)throw error;
+ return data||{};
+}
+export async function recordCourierPayout(orderId,amount,paid){
+ if(!isLive)throw Error('Necesitas conexión para registrar pagos');
+ const {error}=await api.rpc('admin_rutaya_payout',{p_order_id:orderId,p_amount:amount,p_mark_paid:paid});
+ if(error)throw error;
+}
+export async function listCourierPayouts(){
+ if(!isLive)return [];
+ const u=await currentUser();if(!u)return [];
+ const {data,error}=await api.from('courier_payouts').select('order_id,courier_id,amount,paid_at,updated_at').order('updated_at',{ascending:false}).limit(200);
+ if(error)throw error;return data||[];
+}
+export async function openSupportCase(orderId,message){
+ if(!isLive)throw Error('Inicia sesión para reportar');
+ const {data,error}=await api.rpc('open_rutaya_support_case',{p_order:orderId,p_message:message});
+ if(error)throw error;return data;
+}
+export async function listSupportCases(){
+ if(!isLive)return [];
+ const {data,error}=await api.from('order_support_cases').select('id,order_id,opened_by,message,status,created_at').order('created_at',{ascending:false}).limit(120);
+ if(error)throw error;return data||[];
+}
+export async function resolveSupportCase(caseId){
+ const {error}=await api.rpc('admin_resolve_rutaya_support',{p_case:caseId});
+ if(error)throw error;
+}
+export async function listCourierVerification(){
+ if(!isLive)return [];
+ const {data,error}=await api.from('courier_applications')
+ .select('user_id,identity_checked,vehicle_checked,verification_notes,verified_at').limit(300);
+ if(error)throw error;return data||[];
+}
+export async function verifyCourier(userId,identity,vehicle,notes=''){
+ const {error}=await api.rpc('admin_verify_rutaya_courier',{
+  p_user:userId,p_identity:identity,p_vehicle:vehicle,p_notes:notes
+ });
+ if(error)throw error;
+}
