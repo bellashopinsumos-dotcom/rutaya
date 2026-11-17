@@ -1,6 +1,6 @@
-import {icon,escapeHTML as e,money,prettyTime,statusText,serviceName} from './icons.js?v=21';
-import * as data from './data.js?v=21';
-import {openPicker,gps,navigationUrl,googleEmbed,hasGoogleKey} from './maps.js?v=21';
+import {icon,escapeHTML as e,money,prettyTime,statusText,serviceName} from './icons.js?v=22';
+import * as data from './data.js?v=22';
+import {openPicker,gps,navigationUrl,googleEmbed,hasGoogleKey} from './maps.js?v=22';
 const cfg=window.RUTAYA_CONFIG||{};
 const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
