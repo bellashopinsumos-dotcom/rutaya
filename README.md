@@ -73,3 +73,22 @@ Este procedimiento evita compartir contraseñas o conceder permisos de administr
 - El repartidor encuentra dos botones: **Ruta al punto de recogida** y **Ruta a la dirección del cliente**. Ambos abren la navegación real por calles en Google Maps, con el destino exacto del pedido, y dispone de un botón para **Ver punto en el mapa** sin salir de RutaYa.
 - La ventana de mapa interno del repartidor muestra el destino, **no una ruta vial calculada**. Google Maps sí calcula el trayecto al abrir su aplicación. Para navegar, el GPS del repartidor debe estar activo y Google Maps debe tener permiso de ubicación.
 - La API de Google Maps integrada sigue **sin clave**; no presentarse como una búsqueda propia de Google Maps. No hay estimaciones de llegada ni navegación en segundo plano dentro de RutaYa.
+
+
+## RutaYa v20 — mejoras operativas del piloto
+- **Cancelación con motivo:** cliente cancela pedidos pendientes; Bella Shop puede cancelar hasta antes de la recogida; administración gestiona los casos pendientes/asignados, nunca cancela automáticamente paquetes ya recogidos.
+- **Liberar domicilio:** un repartidor puede devolverlo a disponibles antes de recogerlo. **Reasignación:** administración puede liberarlo o asignarlo directamente a otro repartidor aprobado, con motivo registrado y con límite de 5 servicios activos.
+- **Pedidos demorados:** administración, negocios y repartidores ven avisos por tiempo sin actualización. No hay cancelación automática ni confirmación sin GPS.
+- **Direcciones recientes:** se obtienen de los pedidos propios para repetir la entrega sin volver a marcar el punto; no se crea un historial público adicional.
+- **Tarifas:** administración puede activar/desactivar y editar zonas mediante funciones seguras. La columna \`is_example\` marca tarifas ilustrativas; las cuatro tarifas iniciales siguen siendo **de prueba** hasta que administración confirme importes reales.
+- **Seguimiento:** ahora diferencia sin señal, pendiente, entregado y cancelado; incluye hora de la última actualización del estado. Las posiciones desaparecen si no existe un reporte reciente; no se infiere movimiento o ETA.
+- **Autenticación:** recuperar contraseña por email y cambiarla desde la cuenta. Para que los enlaces de recuperación vuelvan a RutaYa, comprobar los Redirect URLs permitidos en Supabase Auth.
+- **Avisos:** en la aplicación cada ~12 segundos cuando cambia un pedido y notificaciones web optativas si el navegador las admite y RutaYa sigue abierta. No hay notificaciones push fiables con la app cerrada.
+- **Seguridad:** funciones de gestión requieren sesión y validan roles en PostgreSQL; \`rutaya_is_role\` ya no se puede invocar con clave anónima. La consulta anónima con token de seguimiento es intencional; no reenviar enlaces a terceros. Habilitar manualmente "Leaked Password Protection" en Supabase cuando esté disponible.
+- **Teléfono:** nuevas solicitudes verifican formato de celular colombiano y no modifican los datos de pedidos previos.
+
+### Migraciones para una instalación nueva
+Aplicar en orden \`supabase/schema.sql\`, \`supabase/courier-onboarding.sql\` y \`supabase/operacion-v20.sql\`. El último archivo contiene funciones de gestión, asignación, tarifas, permisos y el seguimiento actualizado. El dueño se designa administrador solamente después de verificar su identidad y cuenta.
+
+### Pendiente antes del lanzamiento comercial
+Definir **tarifas reales y límites geográficos** de zonas en Popayán; para calcular la zona automáticamente se necesitan polígonos/boundaries confirmados. Sustituir la API pública de Nominatim por un proveedor autorizado para tráfico comercial y sugerencias de direcciones. Activar servicio de notificaciones push y GPS en segundo plano mediante app compatible. Verificar documentos de domiciliarios, atención de incidentes, políticas de datos personales, términos, cobros y soporte. Hacer pruebas completas en tres celulares con los papeles de cliente, negocio y repartidor. El piloto no equivale a un lanzamiento validado.
