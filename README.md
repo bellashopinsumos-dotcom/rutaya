@@ -53,3 +53,13 @@ Abrir con servidor estático (los módulos JS no funcionan desde `file://`): `py
 - **Negocio:** cada solicitud permite abrir el seguimiento del domicilio, copiar el enlace o preparar un mensaje para la clienta en WhatsApp. **La persona del negocio debe pulsar Enviar dentro de WhatsApp:** no hay mensajería automática integrada.
 - **Cliente:** puede abrir el enlace de seguimiento sin cuenta; RutaYa muestra el estado y la última ubicación GPS recibida cuando el repartidor mantiene la app abierta. Se actualiza periódicamente, no es una transmisión en segundo plano garantizada.
 - **Pendiente:** definición real de tarifas por barrio/distancia, programación operativa de rutas agrupadas, aprobación de domiciliarios, notificaciones y GPS fiable en segundo plano. Los montos base por zona son **ejemplos**, no precios comerciales aprobados.
+
+
+## Alta y aprobación de domiciliarios
+1. Desde **Bella Shop → Administrar** o desde `/admin/` (cuenta con permiso `is_admin`), entrar a **Domiciliarios** y pulsar **Copiar enlace de registro**.
+2. El repartidor abre `/repartidores/`, se registra con **su propio correo** y confirma el correo si Supabase lo solicita; inicia sesión y envía su solicitud con celular y vehículo.
+3. La solicitud queda con `role='courier'`, `approved=false`. La RLS y la función de aceptar pedidos bloquean el acceso a servicios mientras esté pendiente.
+4. El administrador verifica identidad, documentos y requisitos operativos fuera de línea; aprueba en **Domiciliarios → Aprobar domiciliario**.
+5. El repartidor toca **Comprobar si ya me aprobaron** y después puede activar su GPS y aceptar servicios. El administrador también puede suspenderlo cuando no tiene pedidos activos.
+
+Este procedimiento evita compartir contraseñas o conceder permisos de administrador a los repartidores. La cuenta fundadora de Bella Shop fue habilitada como administradora de RutaYa sin cambiar su rol empresarial. La migración reproducible está en `supabase/courier-onboarding.sql`. Antes de un lanzamiento comercial hacen falta controles adicionales de identidad, documentación, privacidad, ubicación y operación.
