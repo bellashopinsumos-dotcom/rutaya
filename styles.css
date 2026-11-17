@@ -92,3 +92,28 @@
 
 /* Dirección simple v19 */
 .ry-gps-first{margin:4px 0 14px;min-height:49px}.ry-or{text-align:center;color:#806d91;font-size:12px;margin:4px 0 15px}.ry-map-toggle{margin:14px 0 18px;white-space:normal;text-align:center}.rutaya-location-modal #ry-place-results:empty{display:none}.rutaya-location-modal #ry-map-section.hide{display:none}
+
+
+/* RutaYa v20: controles operativos y direcciones reutilizables */
+.stall-note{display:flex;align-items:flex-start;gap:9px;margin:12px 0;padding:11px 12px;color:#8c4f0b;background:#fff6e8;border:1px solid #f4daaf;border-radius:12px;font-size:12px;font-weight:650;line-height:1.4}
+.stall-note svg{flex-shrink:0}
+.notice-card{background:#fff8ef;border-color:#f3d9b7;box-shadow:none}
+.notice-card h3{display:flex;align-items:center;gap:8px;color:#8b510f}
+.admin-order-meta{display:flex;gap:6px 13px;flex-wrap:wrap;font-size:11px;color:var(--sub);margin:9px 0}
+.admin-order-meta span:not(:last-child){border-right:1px solid var(--border);padding-right:10px}
+.zone-admin-item{padding:15px 0;margin-top:5px;border-bottom:1px solid var(--border)}
+.zone-admin-item:last-child{border-bottom:0}
+.zone-admin-item label{margin:11px 0 5px}
+.zone-admin-item input[readonly]{background:#f5f2fa;color:#584b69}
+.zone-check label{display:flex;gap:10px;align-items:center;margin:9px 0;font-size:12px;font-weight:650;cursor:pointer}
+.zone-check input[type=checkbox]{width:18px;min-width:18px;height:18px;padding:0;accent-color:var(--purple)}
+.tracking-cancelled{display:flex;gap:12px;align-items:flex-start;padding:17px;border-radius:14px;background:#fff0f3;color:#a33650}
+.tracking-cancelled small{display:block;margin-top:5px;line-height:1.4}
+.tracking-cancelled b{display:block}
+.account-actions{display:flex;gap:9px;flex-wrap:wrap}
+.account-actions .button{flex:1;min-width:145px}
+.ry-recent-title{display:block;font-size:13px;margin:13px 0 8px;color:var(--dark)}
+.ry-recent-button{display:flex;align-items:center;gap:9px;padding:11px 12px;width:100%;margin-bottom:6px;text-align:left;border:1px solid #e5dbee;background:#f8f4fd;border-radius:13px;color:#392b4a;font-size:12px;line-height:1.4;font-weight:600}
+.ry-recent-button svg{color:var(--purple)}
+.ry-recent-button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+@media(max-width:450px){.admin-order-meta{font-size:10px}.account-actions .button{min-width:100%}.zone-admin-item input{max-width:100%}}
