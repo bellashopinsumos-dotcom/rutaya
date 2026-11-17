@@ -243,3 +243,20 @@ export async function adminAssignRoute(ids,courierId,reason){
  if(error)throw error;
  return data;
 }
+
+
+export async function openGuestSupport(token,message){
+ if(!isLive)throw Error('El seguimiento requiere conexión a RutaYa');
+ const {data,error}=await api.rpc('open_rutaya_support_by_token',{p_token:token,p_message:message});
+ if(error)throw error;return data;
+}
+export async function rateDelivery(token,stars,comment=''){
+ if(!isLive)throw Error('La calificación requiere conexión a RutaYa');
+ const {error}=await api.rpc('rate_rutaya_order',{p_token:token,p_stars:stars,p_comment:comment});
+ if(error)throw error;
+}
+export async function adminCourierRatings(){
+ if(!isLive)return [];
+ const {data,error}=await api.rpc('admin_courier_rating_summary');
+ if(error)throw error;return data||[];
+}
