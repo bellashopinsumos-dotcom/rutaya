@@ -150,3 +150,9 @@
  .invite-item .inline-between{flex-wrap:wrap}
  .invite-item .order-actions .button{flex:1 1 auto}
 }
+
+
+/* RutaYa v22 · Filtros y control de pedidos desde administración */
+.admin-order-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.admin-order-filter .button{flex:1 1 115px;justify-content:center;min-height:39px}
+@media(max-width:460px){.admin-order-filter{gap:6px}.admin-order-filter .button{flex:1 1 30%;font-size:12px;padding:9px 8px}}
