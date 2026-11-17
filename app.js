@@ -6,7 +6,7 @@ const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',manageOrderId:null,manageAction:null,adminZones:[],desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminZones:[],desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
 
 function modeName(v){return ({routed:'Enrutado',normal:'Normal',urgent:'Urgente'})[v]||'Normal'}
@@ -55,6 +55,55 @@ function orderUpdateNotice(message){
  if(model.desktopAlerts&&'Notification' in window&&Notification.permission==='granted'&&document.hidden){
   try{new Notification('RutaYa',{body:message,tag:'rutaya-order-update'})}catch(err){console.warn(err)}
  }
+}
+
+
+function deliveryInviteUrl(token){return url('confirmar/?token='+encodeURIComponent(token))}
+function inviteWhatsAppText(link){
+ return 'Hola. '+(model.store?.name||'La tienda')+' te invita a completar los datos de entrega de tu pedido en RutaYa.\n'+
+ 'Abre este enlace, escribe tu nombre, celular y dirección, y confirma el punto en el mapa:\n'+link+
+ '\nNo necesitas crear una cuenta. El enlace dura 48 horas.';
+}
+function invitationStatus(i){
+ if(i.revoked_at)return 'Desactivado';
+ if(i.completed_at)return 'Datos recibidos';
+ if(new Date(i.expires_at).getTime()<=Date.now())return 'Vencido';
+ return 'Esperando clienta';
+}
+function inviteShareCard(){
+ if(!model.inviteShareUrl)return '';
+ const link=model.inviteShareUrl;
+ return '<section class="card invite-share"><h3>'+icon('check',20)+' Enlace listo para enviar</h3>'+
+ '<p>Envíalo por WhatsApp a la clienta. Ella completará sus datos, sin crear cuenta. Después se generará el pedido para el repartidor.</p>'+
+ '<div class="invite-url">'+e(link)+'</div>'+
+ '<div class="order-actions"><a class="button primary small" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text='+encodeURIComponent(inviteWhatsAppText(link))+'">'+icon('phone',17)+' Compartir por WhatsApp</a>'+
+ '<button class="button outline small" data-act="copyInvite" data-link="'+e(link)+'">'+icon('copy',17)+' Copiar enlace</button></div></section>';
+}
+function businessInvitations(){
+ const recent=(model.invites||[]).slice(0,12);
+ if(!recent.length)return '';
+ return '<section class="spaced"><div class="section-title"><h2>Enlaces de entrega</h2></div>'+
+ recent.map(i=>{
+  const state=invitationStatus(i),pending=state==='Esperando clienta',link=deliveryInviteUrl(i.token);
+  return '<article class="card invite-item"><div class="inline-between"><strong>'+e(i.items_description)+'</strong><span class="badge '+(i.completed_at?'green':'')+'">'+e(state)+'</span></div>'+
+  '<p class="field-help">'+(i.completed_at?'La clienta ya envió los datos. El pedido está en la sección Entregas.':pending?'Disponible hasta '+e(scheduledTime(i.expires_at)):state==='Vencido'?'Este enlace venció después de 48 horas.':'Ya no se puede completar.')+'</p>'+
+  (pending?'<div class="order-actions"><a class="button tonal small" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text='+encodeURIComponent(inviteWhatsAppText(link))+'">'+icon('phone',17)+' WhatsApp</a>'+
+  '<button class="button outline small" data-act="copyInvite" data-link="'+e(link)+'">'+icon('copy',17)+' Copiar</button>'+
+  '<button class="button outline small" data-act="revokeInvite" data-token="'+e(i.token)+'">'+icon('close',16)+' Desactivar</button></div>':'')+
+  '</article>';
+ }).join('')+'</section>';
+}
+function inviteFormContent(){
+ const d=model.inviteDraft;
+ return '<div class="hint">'+icon('info',18)+' Tú describes el paquete y seleccionas el servicio. La clienta escribirá su nombre, celular y dirección desde el enlace.</div>'+
+ '<label for="invite-detail">¿Qué vas a entregar?</label>'+
+ '<input id="invite-detail" name="items_description" maxlength="1000" placeholder="Ej. Set de esmaltes y lámpara" value="'+e(d.items_description||'')+'">'+
+ '<label for="invite-paid">¿El producto ya está pagado?</label>'+
+ '<select id="invite-paid" name="paid"><option value="true" '+(d.paid!==false?'selected':'')+'>Sí, ya pagó</option>'+
+ '<option value="false" '+(d.paid===false?'selected':'')+'>No, la clienta debe pagar al recibir</option></select>'+
+ (d.paid===false?'<label for="invite-amount">Valor pendiente del producto (COP)</label><input id="invite-amount" name="amount_to_collect" type="number" min="1" max="100000000" value="'+e(d.amount_to_collect||'')+'">':'')+
+ modeSelector(d)+
+ '<p class="field-help">El precio del domicilio se calculará cuando la clienta seleccione su zona. Los Enrutados tienen horario de despacho programado.</p>';
 }
 
 function isAdmin(){return Boolean(model.profile?.is_admin||model.profile?.role==='admin')}
