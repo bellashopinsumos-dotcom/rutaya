@@ -307,6 +307,22 @@ function adminFleetPage(){
  adminRouteGroups();
 }
 
+
+function routeGroupModal(){
+ const group=model.routeGroups[model.routeGroupIndex];
+ if(!group)return '';
+ const choices=model.couriers.filter(c=>c.approved);
+ return modal('Asignar Enrutados juntos',
+ '<p>'+group.length+' pedidos del sector '+e(group[0].dropoff_zone)+'. Deben estar listos físicamente en el mismo negocio.</p>'+
+ '<label for="route-driver">Domiciliario aprobado</label><select id="route-driver">'+
+ '<option value="">Selecciona un repartidor</option>'+
+ choices.map(c=>'<option value="'+e(c.user_id)+'">'+e(c.display_name||c.email||'Domiciliario')+'</option>').join('')+'</select>'+
+ '<label for="route-reason">Nota de asignación</label><textarea id="route-reason" rows="2" maxlength="180" placeholder="Ej. Ruta enrutada de la tarde, paquetes preparados en Bella Shop."></textarea>'+
+ '<p class="field-help">El sistema asignará los '+group.length+' pedidos juntos, siempre que sigan disponibles y el repartidor tenga capacidad. Google Maps calculará las calles y el orden de paradas es una sugerencia.</p>',
+ '<button class="button outline" data-act="closeGroup">Volver</button>'+
+ '<button class="button primary" data-act="confirmGroup">Asignar ruta</button>');
+}
+
 function isAdmin(){return Boolean(model.profile?.is_admin||model.profile?.role==='admin')}
 function inactiveMinutes(o){return Math.max(0,Math.floor((Date.now()-new Date(o.updated_at||o.created_at).getTime())/60000))}
 function stalled(o){
@@ -521,7 +537,7 @@ async function mountFleetMap(){
  }catch(err){if(host.isConnected)host.textContent='No se pudo cargar el mapa. Comprueba la conexión e inténtalo de nuevo.';console.warn(err)}
 }
 
-function render(){if(model.loading){root.innerHTML=header()+`<main class="wrap header-space"><div class="card">Preparando RutaYa…</div></main>`;return}if(model.error){root.innerHTML=header()+`<main class="wrap header-space"><div class="notice">${e(model.error)}</div></main>`;return}if(page==='confirmar'){root.innerHTML=header()+`<main class="wrap header-space recipient-page">${recipientInvitationPage()}</main>`+footer();return}if(page==='seguimiento'){root.innerHTML=header()+`<main class="wrap header-space">${modeBanner()}${trackingPage()}</main>`+footer();return}let needsAuth=data.isLive&&!model.user&&page!=='cliente';let needsRole=data.isLive&&model.user&&page!=='cliente'&&page!=='seguimiento'&&page!=='repartidores'&&(page==='admin'?!(model.profile?.is_admin||model.profile?.role==='admin'):model.profile?.role!=='business');if(needsAuth||needsRole){root.innerHTML=header()+`<main class="wrap header-space"><div class="card" style="max-width:530px;margin:auto"><h2>${needsAuth?'Inicia sesión para continuar':'Acceso restringido'}</h2><p>${needsAuth?'Necesitas una cuenta RutaYa.':'Esta cuenta no tiene autorización para este panel. Contacta al administrador para asignar el rol correspondiente.'}</p><button class="button primary" data-act="${needsAuth?'openAuth':'signout'}">${needsAuth?'Ingresar o registrarme':'Cambiar de cuenta'}</button></div></main>`+(model.auth?authModal():'');return}if(page==='repartidores'&&data.isLive&&model.user&&(model.profile?.role!=='courier'||!model.profile?.approved)){root.innerHTML=header()+`<main class="wrap header-space">${courierApplicationPage()}</main>`+footer();return}let body='';if(page==='cliente')body=model.view==='pedidos'?clientOrders():model.view==='cuenta'?accountView():clientHome();else if(page==='negocios')body=model.view==='pedidos'?businessOrders():model.view==='cuenta'?storeCard()+accountView():businessHome();else if(page==='repartidores')body=model.view==='pedidos'?courierOrders():model.view==='caja'?courierCashPage():model.view==='cuenta'?courierAccount():courierHome();else if(page==='admin')body=model.view==='domiciliarios'?adminCourierPage():model.view==='mapa'?adminFleetPage():model.view==='reportes'?adminStatsPage():model.view==='soporte'?adminSupportPage():model.view==='pedidos'?adminRates():model.view==='cuenta'?adminSettings():adminHome();root.innerHTML=header()+`<main class="wrap with-nav header-space">${modeBanner()}${body}</main>`+footer()+bottomNav()+(model.showForm==='store'?storeModal():model.showForm==='invite'?modal('Enlace para la clienta',inviteFormContent(),`<button class="button outline" data-act="closeModal">Volver</button><button class="button primary" data-act="submitInvite">Crear enlace</button>`):model.showForm?(page==='negocios'?modal('Nueva entrega desde el negocio',businessFormContent(),`<button class="button outline" data-act="closeModal">Cancelar</button><button class="button primary" data-act="submitBusiness">Crear solicitud</button>`):modal('Solicitar '+serviceName(model.service).toLowerCase(),formContent(),`<button class="button outline" data-act="closeModal">Cancelar</button><button class="button primary" data-act="submitCustomer">Crear pedido</button>`)):'')+(model.auth?authModal():'')+(model.manageAction?manageOrderModal():'')+(model.deliveryOtpOrderId?deliveryCodeModal():'')+(model.supportOrderId?supportOrderModal():'');if(page==='admin'&&model.view==='mapa')mountFleetMap()}
+function render(){if(model.loading){root.innerHTML=header()+`<main class="wrap header-space"><div class="card">Preparando RutaYa…</div></main>`;return}if(model.error){root.innerHTML=header()+`<main class="wrap header-space"><div class="notice">${e(model.error)}</div></main>`;return}if(page==='confirmar'){root.innerHTML=header()+`<main class="wrap header-space recipient-page">${recipientInvitationPage()}</main>`+footer();return}if(page==='seguimiento'){root.innerHTML=header()+`<main class="wrap header-space">${modeBanner()}${trackingPage()}</main>`+footer();return}let needsAuth=data.isLive&&!model.user&&page!=='cliente';let needsRole=data.isLive&&model.user&&page!=='cliente'&&page!=='seguimiento'&&page!=='repartidores'&&(page==='admin'?!(model.profile?.is_admin||model.profile?.role==='admin'):model.profile?.role!=='business');if(needsAuth||needsRole){root.innerHTML=header()+`<main class="wrap header-space"><div class="card" style="max-width:530px;margin:auto"><h2>${needsAuth?'Inicia sesión para continuar':'Acceso restringido'}</h2><p>${needsAuth?'Necesitas una cuenta RutaYa.':'Esta cuenta no tiene autorización para este panel. Contacta al administrador para asignar el rol correspondiente.'}</p><button class="button primary" data-act="${needsAuth?'openAuth':'signout'}">${needsAuth?'Ingresar o registrarme':'Cambiar de cuenta'}</button></div></main>`+(model.auth?authModal():'');return}if(page==='repartidores'&&data.isLive&&model.user&&(model.profile?.role!=='courier'||!model.profile?.approved)){root.innerHTML=header()+`<main class="wrap header-space">${courierApplicationPage()}</main>`+footer();return}let body='';if(page==='cliente')body=model.view==='pedidos'?clientOrders():model.view==='cuenta'?accountView():clientHome();else if(page==='negocios')body=model.view==='pedidos'?businessOrders():model.view==='cuenta'?storeCard()+accountView():businessHome();else if(page==='repartidores')body=model.view==='pedidos'?courierOrders():model.view==='caja'?courierCashPage():model.view==='cuenta'?courierAccount():courierHome();else if(page==='admin')body=model.view==='domiciliarios'?adminCourierPage():model.view==='mapa'?adminFleetPage():model.view==='reportes'?adminStatsPage():model.view==='soporte'?adminSupportPage():model.view==='pedidos'?adminRates():model.view==='cuenta'?adminSettings():adminHome();root.innerHTML=header()+`<main class="wrap with-nav header-space">${modeBanner()}${body}</main>`+footer()+bottomNav()+(model.showForm==='store'?storeModal():model.showForm==='invite'?modal('Enlace para la clienta',inviteFormContent(),`<button class="button outline" data-act="closeModal">Volver</button><button class="button primary" data-act="submitInvite">Crear enlace</button>`):model.showForm?(page==='negocios'?modal('Nueva entrega desde el negocio',businessFormContent(),`<button class="button outline" data-act="closeModal">Cancelar</button><button class="button primary" data-act="submitBusiness">Crear solicitud</button>`):modal('Solicitar '+serviceName(model.service).toLowerCase(),formContent(),`<button class="button outline" data-act="closeModal">Cancelar</button><button class="button primary" data-act="submitCustomer">Crear pedido</button>`)):'')+(model.auth?authModal():'')+(model.manageAction?manageOrderModal():'')+(model.deliveryOtpOrderId?deliveryCodeModal():'')+(model.supportOrderId?supportOrderModal():'')+(model.routeGroupIndex!=null?routeGroupModal():'');if(page==='admin'&&model.view==='mapa')mountFleetMap()}
 async function refresh(){if(page==='confirmar')return;const before=model.orders;const next=await data.listOrders(page);const notice=changedOrderNotice(before,next);model.orders=next;if(page==='admin'&&(model.profile?.is_admin||model.profile?.role==='admin')){
  if(model.view==='mapa')model.fleet=await data.fleetLocations();
  if(model.view==='reportes'){model.stats=await data.adminStatistics(model.statsDays);model.payouts=await data.listCourierPayouts()}
@@ -545,7 +561,82 @@ async function initialize(){try{await data.init();if(page==='confirmar'){
 function draftChange(el){let draft=page==='negocios'?(model.showForm==='invite'?model.inviteDraft:model.businessDraft):model.draft;if(!el.name)return;draft[el.name]=el.name==='paid'?el.value==='true':el.value; if(el.name==='paid'||el.name==='dropoff_zone'||el.name==='delivery_mode')render()}
 root.addEventListener('input',ev=>{let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
 root.addEventListener('change',ev=>{let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
-root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]');if(!b)return;const action=b.dataset.act;const id=b.dataset.id;try{if(action==='adminFilter'){if(page!=='admin'||!isAdmin())throw Error('Acceso no autorizado');const v=b.dataset.filter;if(!['active','done','all'].includes(v))throw Error('Filtro inválido');model.adminOrderFilter=v;render()}else if(action==='nav'){if(data.isLive&&!model.user&&b.dataset.view==='pedidos'){model.auth=true;render();notify('Ingresa para ver tus pedidos.');return}model.view=b.dataset.view;if((page==='admin'||page==='repartidores')&&model.user){await refresh()}else render();window.scrollTo({top:0,behavior:'smooth'})}else if(action==='service'){if(data.isLive&&!model.user){model.auth=true;model.registration=true;render();notify('Regístrate o inicia sesión para pedir un domicilio.');return}model.service=b.dataset.service;model.draft=model.draft||{};model.showForm=true;render()}else if(action==='inviteForm'){
+root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]');if(!b)return;const action=b.dataset.act;const id=b.dataset.id;try{if(action==='deliveryOtp'){
+ if(page!=='repartidores')throw Error('Solo repartidores confirman entregas');
+ model.deliveryOtpOrderId=id;render();
+}else if(action==='closeOtp'){
+ model.deliveryOtpOrderId=null;render();
+}else if(action==='confirmOtp'){
+ if(model.sending)return;
+ const code=document.getElementById('delivery-otp')?.value.trim()||'';
+ if(!/^[0-9]{6}$/.test(code))throw Error('Pide el código de seis dígitos a la clienta');
+ const id=model.deliveryOtpOrderId;
+ if(!id)throw Error('No hay pedido seleccionado');
+ model.sending=true;b.disabled=true;
+ try{
+  const point=await gps();
+  await data.confirmDelivery(id,code,point);
+  model.deliveryOtpOrderId=null;
+  await refresh();notify('Entrega verificada con código y ubicación GPS.');
+ }finally{model.sending=false}
+}else if(action==='openSupport'){
+ if(!model.user)throw Error('Inicia sesión para pedir ayuda');
+ model.supportOrderId=id;render();
+}else if(action==='closeSupport'){
+ model.supportOrderId=null;render();
+}else if(action==='submitSupport'){
+ const id=model.supportOrderId,content=document.getElementById('support-message')?.value.trim()||'';
+ if(content.length<10)throw Error('Explica qué ocurre en al menos diez caracteres');
+ b.disabled=true;await data.openSupportCase(id,content);
+ model.supportOrderId=null;render();notify('Tu reporte se envió a Administración.');
+}else if(action==='resolveSupport'){
+ if(!isAdmin())throw Error('Solo administración puede resolver reportes');
+ if(!confirm('¿Ya revisaste y solucionaste este problema?'))return;
+ b.disabled=true;await data.resolveSupportCase(b.dataset.case);await refresh();notify('Reporte marcado como solucionado.');
+}else if(action==='statsRange'){
+ if(!isAdmin())throw Error('Acceso solo para administración');
+ model.statsDays=Number(b.dataset.days);
+ model.stats=await data.adminStatistics(model.statsDays);
+ render();
+}else if(action==='setPayout'||action==='markPayoutPaid'){
+ if(!isAdmin())throw Error('Solo administración registra pagos');
+ const value=document.getElementById('payout-'+id)?.value;
+ const amount=Number(value);
+ if(value==null||value===''||!Number.isInteger(amount)||amount<0||amount>1000000)throw Error('Indica el valor aprobado en pesos');
+ const paid=action==='markPayoutPaid';
+ if(paid&&!confirm('¿Confirmas que ya pagaste '+money(amount)+' a este domiciliario? Esta operación queda registrada.'))return;
+ b.disabled=true;await data.recordCourierPayout(id,amount,paid);
+ model.payouts=await data.listCourierPayouts();render();
+ notify(paid?'Pago registrado como entregado.':'Valor de liquidación guardado.');
+}else if(action==='verifyCourier'){
+ if(!isAdmin())throw Error('Solo administración verifica documentos');
+ const uid=b.dataset.user;
+ const identity=document.getElementById('verify-id-'+uid)?.checked===true;
+ const vehicle=document.getElementById('verify-vehicle-'+uid)?.checked===true;
+ const notes=document.getElementById('verify-notes-'+uid)?.value.trim()||'';
+ if((identity||vehicle)&&!confirm('¿Realmente revisaste estos documentos fuera de RutaYa? No marques algo que no comprobaste.'))return;
+ b.disabled=true;await data.verifyCourier(uid,identity,vehicle,notes);
+ model.verifications=await data.listCourierVerification();render();notify('Verificaciones guardadas.');
+}else if(action==='refreshFleet'){
+ if(!isAdmin())throw Error('Solo administración puede ver el mapa de flota');
+ await refresh();notify('Mapa actualizado con las últimas ubicaciones disponibles.');
+}else if(action==='assignGroup'){
+ if(!isAdmin())throw Error('Acceso solo para administración');
+ model.routeGroupIndex=Number(b.dataset.index);render();
+}else if(action==='closeGroup'){
+ model.routeGroupIndex=null;render();
+}else if(action==='confirmGroup'){
+ if(!isAdmin())throw Error('Acceso solo para administración');
+ const group=model.routeGroups[model.routeGroupIndex];
+ if(!group||group.length<2)throw Error('El grupo dejó de estar disponible');
+ const courier=document.getElementById('route-driver')?.value||'';
+ const reason=document.getElementById('route-reason')?.value.trim()||'';
+ if(!courier)throw Error('Selecciona un repartidor aprobado');
+ if(reason.length<5)throw Error('Escribe una nota para la ruta');
+ if(!confirm('¿Asignar '+group.length+' domicilios al mismo repartidor?'))return;
+ b.disabled=true;await data.adminAssignRoute(group.map(o=>o.id),courier,reason);
+ model.routeGroupIndex=null;await refresh();notify('Ruta asignada. El repartidor verá todos los pedidos.');
+}else if(action==='adminFilter'){if(page!=='admin'||!isAdmin())throw Error('Acceso no autorizado');const v=b.dataset.filter;if(!['active','done','all'].includes(v))throw Error('Filtro inválido');model.adminOrderFilter=v;render()}else if(action==='nav'){if(data.isLive&&!model.user&&b.dataset.view==='pedidos'){model.auth=true;render();notify('Ingresa para ver tus pedidos.');return}model.view=b.dataset.view;if((page==='admin'||page==='repartidores')&&model.user){await refresh()}else render();window.scrollTo({top:0,behavior:'smooth'})}else if(action==='service'){if(data.isLive&&!model.user){model.auth=true;model.registration=true;render();notify('Regístrate o inicia sesión para pedir un domicilio.');return}model.service=b.dataset.service;model.draft=model.draft||{};model.showForm=true;render()}else if(action==='inviteForm'){
  if(model.store?.lat==null||model.store?.lng==null)throw Error('Registra primero la ubicación de tu negocio.');
  model.inviteDraft={paid:true,delivery_mode:'normal'};
  model.showForm='invite';render();
