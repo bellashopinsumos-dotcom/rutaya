@@ -258,7 +258,7 @@ revoke all on function public.update_rutaya_courier_location(float8,float8,float
 revoke all on function public.set_business_location(text,text,float8,float8) from public;
 revoke all on function public.admin_set_rutaya_fee(uuid,integer) from public;
 revoke all on function public.track_rutaya_order(uuid) from public;
-grant execute on function public.rutaya_is_role(text) to authenticated;
+grant execute on function public.rutaya_is_role(text) to anon,authenticated;
 grant execute on function public.create_rutaya_order(jsonb) to authenticated;
 grant execute on function public.claim_rutaya_order(uuid) to authenticated;
 grant execute on function public.progress_rutaya_order(uuid,text,float8,float8,float8) to authenticated;
