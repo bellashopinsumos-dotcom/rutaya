@@ -1,5 +1,6 @@
 -- RutaYa · esquema inicial de PILOTO. Ejecutar en un proyecto Supabase nuevo.
 -- No ejecutar en la base de datos de Bella Shop. Revisar límites, políticas y auditoría antes de producción.
+-- Modalidades: Enrutado (-1000 COP; corte 12:00, despacho desde 14:00 Colombia), Normal (base), Urgente (+1500 COP, prioridad).
 create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
@@ -51,6 +52,8 @@ create table if not exists public.orders (
   amount_to_collect integer not null default 0 check (amount_to_collect>=0),
   delivery_notes text not null default '',
   fee integer check (fee>=0),
+  delivery_mode text not null default 'normal' check (delivery_mode in ('routed','normal','urgent')),
+  dispatch_after timestamptz not null default now(),
   courier_id uuid references auth.users(id),
   status text not null default 'pending' check(status in('pending','accepted','at_pickup','picked_up','at_dropoff','delivered','cancelled')),
   created_at timestamptz not null default now(),
@@ -59,6 +62,8 @@ create table if not exists public.orders (
 create index if not exists orders_created_by_idx on public.orders(created_by,created_at desc);
 create index if not exists orders_courier_idx on public.orders(courier_id,status);
 create index if not exists orders_pending_idx on public.orders(status,created_at desc);
+create index if not exists orders_dispatch_idx on public.orders(status,dispatch_after);
+create index if not exists orders_business_idx on public.orders(business_id);
 create table if not exists public.courier_locations (
   courier_id uuid primary key references auth.users(id) on delete cascade,
   lat double precision not null check(lat between -90 and 90),
@@ -73,6 +78,8 @@ create table if not exists public.order_events (
   actor_id uuid references auth.users(id),
   occurred_at timestamptz not null default now()
 );
+create index if not exists order_events_order_idx on public.order_events(order_id);
+create index if not exists order_events_actor_idx on public.order_events(actor_id);
 
 create or replace function public.new_rutaya_profile() returns trigger
 language plpgsql security definer set search_path = '' as $$
@@ -106,7 +113,7 @@ create policy "Tariffs public read" on public.tariff_zones for select to anon,au
 create policy "Orders visible to participants" on public.orders for select to authenticated
 using (created_by=(select auth.uid()) or courier_id=(select auth.uid()) or
   (business_id is not null and exists(select 1 from public.businesses b where b.id=orders.business_id and b.owner_user_id=(select auth.uid()))) or
-  (status='pending' and public.rutaya_is_role('courier')) or public.rutaya_is_role('admin'));
+  (status='pending' and dispatch_after<=now() and public.rutaya_is_role('courier')) or public.rutaya_is_role('admin'));
 create policy "Courier own or order participants read latest position" on public.courier_locations for select to authenticated
 using (courier_id=(select auth.uid()) or public.rutaya_is_role('admin') or exists(
  select 1 from public.orders o where o.courier_id=courier_locations.courier_id and (o.created_by=(select auth.uid()) or exists(select 1 from public.businesses b where b.id=o.business_id and b.owner_user_id=(select auth.uid()))) and o.status not in('delivered','cancelled')
@@ -116,7 +123,7 @@ using (exists(select 1 from public.orders o where o.id=order_id));
 -- NO políticas INSERT/UPDATE/DELETE en tablas sensibles: las escrituras pasan por funciones RPC seguras.
 
 create or replace function public.rutaya_distance_meters(a_lat double precision,a_lng double precision,b_lat double precision,b_lng double precision)
-returns double precision language sql immutable as $$
+returns double precision language sql immutable set search_path = '' as $
  select 6371000.0 * 2.0 * asin(sqrt(least(1.0,
  pow(sin(radians((b_lat-a_lat)/2)),2)+cos(radians(a_lat))*cos(radians(b_lat))*pow(sin(radians((b_lng-a_lng)/2)),2)
  )));
@@ -125,10 +132,12 @@ $$;
 create or replace function public.create_rutaya_order(p_data jsonb) returns public.orders
 language plpgsql security definer set search_path = '' as $$
 declare v_id uuid:=auth.uid(); v_source text; v_service text; v_store public.businesses; v_fee integer; v_order public.orders;
-        v_pickup_lat float8;v_pickup_lng float8;v_drop_lat float8;v_drop_lng float8; v_paid boolean;
+        v_pickup_lat float8;v_pickup_lng float8;v_drop_lat float8;v_drop_lng float8; v_paid boolean; v_mode text; v_base_fee integer; v_local timestamp; v_dispatch timestamptz;
 begin
  if v_id is null then raise exception 'Debes iniciar sesión';end if;
  v_source:=p_data->>'source'; v_service:=p_data->>'service';
+ v_mode:=coalesce(p_data->>'delivery_mode','normal');
+ if v_mode not in ('routed','normal','urgent') then raise exception 'Modalidad de entrega inválida'; end if;
  if v_source not in('customer','business') or v_service not in('shop','pickup','parcel','business') then raise exception 'Tipo de servicio inválido';end if;
  if v_source='business' then
    if not public.rutaya_is_role('business') then raise exception 'Negocio no autorizado';end if;
@@ -150,8 +159,16 @@ begin
  if v_pickup_lat is null or v_pickup_lng is null or v_drop_lat is null or v_drop_lng is null
  or abs(v_pickup_lat)>90 or abs(v_drop_lat)>90 or abs(v_pickup_lng)>180 or abs(v_drop_lng)>180 then raise exception 'Confirma los puntos GPS de recogida y entrega';end if;
  v_paid:=coalesce((p_data->>'paid')::boolean,true);
- select fee into v_fee from public.tariff_zones where active=true and lower(name)=lower(coalesce(p_data->>'dropoff_zone','')) limit 1;
- insert into public.orders(created_by,business_id,source,service,items_description,pickup_name,pickup_address,pickup_lat,pickup_lng,dropoff_address,dropoff_lat,dropoff_lng,dropoff_zone,recipient_name,recipient_phone,shopper_name,paid,amount_to_collect,delivery_notes,fee)
+ select fee into v_base_fee from public.tariff_zones where active=true and lower(name)=lower(coalesce(p_data->>'dropoff_zone','')) limit 1;
+ if v_base_fee is null then raise exception 'Selecciona una zona de entrega válida para calcular el domicilio'; end if;
+ v_fee:=greatest(0,v_base_fee+case v_mode when 'routed' then -1000 when 'urgent' then 1500 else 0 end);
+ v_local:=now() at time zone 'America/Bogota';
+ if v_mode='routed' then
+   v_dispatch:=((v_local::date + (case when v_local::time < time '12:00' then 0 else 1 end)) + time '14:00') at time zone 'America/Bogota';
+ else
+   v_dispatch:=now();
+ end if;
+ insert into public.orders(created_by,business_id,source,service,items_description,pickup_name,pickup_address,pickup_lat,pickup_lng,dropoff_address,dropoff_lat,dropoff_lng,dropoff_zone,recipient_name,recipient_phone,shopper_name,paid,amount_to_collect,delivery_notes,fee,delivery_mode,dispatch_after)
  values(v_id,v_store.id,v_source,v_service,left(p_data->>'items_description',1000),
    case when v_source='business' then v_store.name else left(coalesce(p_data->>'pickup_name',''),150) end,
    case when v_source='business' then v_store.address else left(coalesce(p_data->>'pickup_address',''),400) end,
@@ -159,7 +176,7 @@ begin
    left(coalesce(p_data->>'dropoff_zone',''),80),left(coalesce(p_data->>'recipient_name',''),180),left(coalesce(p_data->>'recipient_phone',''),40),
    left(coalesce(p_data->>'shopper_name',''),180),v_paid,
    case when v_paid then 0 else greatest(0,least(coalesce((p_data->>'amount_to_collect')::integer,0),100000000)) end,
-   left(coalesce(p_data->>'delivery_notes',''),500),v_fee)
+   left(coalesce(p_data->>'delivery_notes',''),500),v_fee,v_mode,v_dispatch)
  returning * into v_order;
  insert into public.order_events(order_id,event,actor_id) values(v_order.id,'created',v_id);
  return v_order;
@@ -174,6 +191,7 @@ begin
  select * into v_order from public.orders where id=p_order_id for update;
  if v_order.id is null or v_order.status<>'pending' then raise exception 'El pedido ya no está disponible';end if;
  if v_order.fee is null then raise exception 'La tarifa debe confirmarse antes de asignar el pedido';end if;
+ if v_order.dispatch_after>now() then raise exception 'Pedido enrutado pendiente de su horario de salida';end if;
  -- Bloqueo por usuario para impedir carreras sobre límite de 5 en pedidos diferentes.
  perform 1 from public.profiles where user_id=v_id for update;
  select count(*) into v_count from public.orders where courier_id=v_id and status in('accepted','at_pickup','picked_up','at_dropoff');
@@ -245,7 +263,7 @@ begin
    select * into v_l from public.courier_locations where courier_id=v_o.courier_id and updated_at>now()-interval '10 minutes';
  end if;
  return jsonb_build_object(
-   'tracking_token',v_o.tracking_token,'service',v_o.service,'status',v_o.status,'items_description',v_o.items_description,
+   'tracking_token',v_o.tracking_token,'service',v_o.service,'status',v_o.status,'delivery_mode',v_o.delivery_mode,'dispatch_after',v_o.dispatch_after,'items_description',v_o.items_description,
    'pickup_address',v_o.pickup_address,'dropoff_address',v_o.dropoff_address,'fee',v_o.fee,'created_at',v_o.created_at,
    'courier_location',case when v_l.courier_id is not null then jsonb_build_object('lat',v_l.lat,'lng',v_l.lng,'accuracy',v_l.accuracy,'updated_at',v_l.updated_at) else null end);
 end;$$;
@@ -259,6 +277,13 @@ revoke all on function public.update_rutaya_courier_location(float8,float8,float
 revoke all on function public.set_business_location(text,text,float8,float8) from public;
 revoke all on function public.admin_set_rutaya_fee(uuid,integer) from public;
 revoke all on function public.track_rutaya_order(uuid) from public;
+revoke execute on function public.new_rutaya_profile() from anon,authenticated;
+revoke execute on function public.create_rutaya_order(jsonb) from anon;
+revoke execute on function public.claim_rutaya_order(uuid) from anon;
+revoke execute on function public.progress_rutaya_order(uuid,text,float8,float8,float8) from anon;
+revoke execute on function public.update_rutaya_courier_location(float8,float8,float8) from anon;
+revoke execute on function public.set_business_location(text,text,float8,float8) from anon;
+revoke execute on function public.admin_set_rutaya_fee(uuid,integer) from anon;
 grant execute on function public.rutaya_is_role(text) to anon,authenticated;
 grant execute on function public.create_rutaya_order(jsonb) to authenticated;
 grant execute on function public.claim_rutaya_order(uuid) to authenticated;
