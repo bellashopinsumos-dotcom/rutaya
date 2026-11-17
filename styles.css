@@ -89,3 +89,6 @@
  .rutaya-location-modal .ry-advanced-inner button{flex:1 1 100%}
  .rutaya-location-modal .modal-foot{padding:10px 13px calc(10px + env(safe-area-inset-bottom))}
 }
+
+/* Dirección simple v19 */
+.ry-gps-first{margin:4px 0 14px;min-height:49px}.ry-or{text-align:center;color:#806d91;font-size:12px;margin:4px 0 15px}.ry-map-toggle{margin:14px 0 18px;white-space:normal;text-align:center}.rutaya-location-modal #ry-place-results:empty{display:none}.rutaya-location-modal #ry-map-section.hide{display:none}
