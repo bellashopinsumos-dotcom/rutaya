@@ -98,19 +98,19 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
   const shade=document.createElement('div');
   shade.className='modal-back rutaya-location-overlay';
   shade.innerHTML='<section class="modal rutaya-location-modal" role="dialog" aria-modal="true" aria-label="'+escapeHTML(title)+'">'+
-   '<div class="modal-head"><div><h2>'+icon('pin',22)+' '+escapeHTML(title)+'</h2><small>El punto que marques será el destino del domiciliario.</small></div><button class="iconbtn" type="button" data-close aria-label="Cerrar">'+icon('close',20)+'</button></div>'+
+   '<div class="modal-head"><div><h2>'+icon('pin',22)+' '+escapeHTML(title)+'</h2><small>Escribe tu dirección o usa tu ubicación actual.</small></div><button class="iconbtn" type="button" data-close aria-label="Cerrar">'+icon('close',20)+'</button></div>'+
    '<div class="modal-body">'+
-    '<label for="ry-place-search" class="map-label">1. Busca una calle, barrio o negocio</label>'+
-    '<form id="ry-place-form" class="search-place"><input id="ry-place-search" autocomplete="off" placeholder="Ej. Barrio Bolívar, Popayán"><button class="button primary" type="submit">'+icon('search',17)+' Buscar</button></form>'+
+    '<button id="ry-use-gps" type="button" class="button primary wide ry-gps-first">'+icon('crosshair',18)+' Usar mi ubicación actual</button>'+ '<div class="ry-or">o escribe la dirección de entrega</div>'+ '<label for="ry-place-search" class="map-label">Dirección, barrio o negocio</label>'+
+    '<form id="ry-place-form" class="search-place"><input id="ry-place-search" autocomplete="off" placeholder="Ej. Carrera 6 # 8-25, Popayán"><button class="button primary" type="submit">'+icon('search',17)+' Buscar</button></form>'+
     '<div id="ry-place-results" aria-live="polite"></div>'+
-    '<div class="map-steps"><b>2. Toca el mapa donde deben llegar</b><small>Puedes mover el mapa, tocar una calle o arrastrar el marcador.</small></div>'+
+    '<button type="button" id="ry-show-map" class="button outline wide ry-map-toggle">'+icon('pin',17)+' ¿No aparece tu dirección? Marcar en el mapa</button>'+ '<div id="ry-map-section" class="hide"><div class="map-steps"><b>Toca el punto donde deben llegar</b><small>Mueve el mapa y toca la casa o arrastra el marcador.</small></div>'+
     '<div id="ry-picker-map" class="placemap ry-picker-map"><div class="ry-map-loading">'+icon('route',26)+' Cargando mapa de Popayán…</div></div>'+
-    '<div class="ry-map-toolbar"><button id="ry-use-gps" type="button" class="button outline small">'+icon('crosshair',17)+' Usar mi ubicación</button><span id="ry-position-label" class="ry-position-label"></span></div>'+
-    '<label for="ry-place-address" class="map-label">3. Confirma la dirección o referencia</label>'+
+    '<div class="ry-map-toolbar"><span id="ry-position-label" class="ry-position-label"></span></div></div>'+
+    '<label for="ry-place-address" class="map-label">Dirección completa y referencia para el domiciliario</label>'+
     '<input id="ry-place-address" placeholder="Ej. Carrera 6 # 10-25, portón azul" autocomplete="street-address" value="'+escapeHTML(selected?.address||'')+'">'+
-    '<p class="field-help">Escribe el barrio, número de casa o una referencia para ayudar al repartidor.</p>'+
-    '<details class="ry-advanced"><summary>¿Tienes coordenadas o un enlace largo de Google Maps?</summary><div class="ry-advanced-inner"><input id="ry-place-coords" placeholder="Latitud, longitud o enlace con coordenadas"><button id="ry-use-coords" type="button" class="button outline small">Marcar ese punto</button></div><small>Los enlaces cortos de Google Maps no siempre incluyen coordenadas. Puedes marcar el lugar directamente en el mapa.</small></details>'+
-    '<div id="ry-picker-feedback" class="field-help ry-picker-feedback">'+(selected?'Punto seleccionado. Comprueba la dirección.':'Toca el mapa para elegir el punto exacto.')+'</div>'+
+    '<p class="field-help">Ejemplo: Casa 12, segundo piso, rejas negras. Confirma que el punto corresponde a tu dirección.</p>'+
+    '<details class="ry-advanced"><summary>Opciones avanzadas (no necesarias)</summary><div class="ry-advanced-inner"><input id="ry-place-coords" placeholder="Latitud, longitud o enlace con coordenadas"><button id="ry-use-coords" type="button" class="button outline small">Marcar ese punto</button></div><small>Los enlaces cortos de Google Maps no siempre incluyen coordenadas. Puedes marcar el lugar directamente en el mapa.</small></details>'+
+    '<div id="ry-picker-feedback" class="field-help ry-picker-feedback">'+(selected?'Punto seleccionado. Comprueba la dirección.':'Escribe una dirección y pulsa Buscar, o usa tu ubicación actual.')+'</div>'+
    '</div>'+
    '<div class="modal-foot"><button class="button outline" data-close type="button">Cancelar</button><button id="ry-save-point" type="button" class="button primary">'+icon('check',17)+' Confirmar dirección</button></div>'+
   '</section>';
@@ -211,14 +211,12 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
    finish(result);
   };
   updateSaveState();
-  loadLeaflet().then(()=>{
-   if(closed)return;
-   byId('ry-picker-map').textContent='';
-   mapController=initOpenMap(byId('ry-picker-map'),selected,p=>updateLocation(p,null,true));
-  }).catch(err=>{
-   if(closed)return;
-   byId('ry-picker-map').innerHTML='<div class="ry-map-loading">'+icon('alert',23)+' El mapa no cargó. Revisa tu conexión o pega coordenadas en «Opciones avanzadas».</div>';
-   feedback.textContent=err.message;
-  });
+  byId('ry-show-map').onclick=async()=>{
+   const section=byId('ry-map-section');section.classList.toggle('hide');
+   if(section.classList.contains('hide'))return;
+   if(mapController){setTimeout(()=>mapController.map.invalidateSize(),60);return}
+   try{await loadLeaflet();if(closed)return;byId('ry-picker-map').textContent='';mapController=initOpenMap(byId('ry-picker-map'),selected,p=>updateLocation(p,null,true))}
+   catch(err){if(closed)return;byId('ry-picker-map').textContent='El mapa no cargó. Puedes buscar tu dirección o usar el GPS.';feedback.textContent=err.message}
+  };
  });
 }
