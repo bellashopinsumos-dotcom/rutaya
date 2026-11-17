@@ -91,7 +91,7 @@ function initOpenMap(root,starting,onChoose){
  setTimeout(()=>map.invalidateSize(),150);
  return {map,setWithoutSelect:p=>set(p,false),destroy:()=>map.remove()};
 }
-export async function openPicker({title='Elegir ubicación',starting=null,knownStores=[],onSelect}){
+export async function openPicker({title='Elegir ubicación',starting=null,knownStores=[],recentPlaces=[],onSelect}){
  return new Promise(resolve=>{
   let selected=starting?.lat!=null&&starting?.lng!=null?{...starting}:null;
   let mapController=null,closed=false,requestCount=0;
@@ -100,7 +100,7 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
   shade.innerHTML='<section class="modal rutaya-location-modal" role="dialog" aria-modal="true" aria-label="'+escapeHTML(title)+'">'+
    '<div class="modal-head"><div><h2>'+icon('pin',22)+' '+escapeHTML(title)+'</h2><small>Escribe tu dirección o usa tu ubicación actual.</small></div><button class="iconbtn" type="button" data-close aria-label="Cerrar">'+icon('close',20)+'</button></div>'+
    '<div class="modal-body">'+
-    '<button id="ry-use-gps" type="button" class="button primary wide ry-gps-first">'+icon('crosshair',18)+' Usar mi ubicación actual</button>'+ '<div class="ry-or">o escribe la dirección de entrega</div>'+ '<label for="ry-place-search" class="map-label">Dirección, barrio o negocio</label>'+
+    '<button id="ry-use-gps" type="button" class="button primary wide ry-gps-first">'+icon('crosshair',18)+' Usar mi ubicación actual</button>'+ '<div id="ry-recent-places"></div>'+ '<div class="ry-or">o escribe la dirección de entrega</div>'+ '<label for="ry-place-search" class="map-label">Dirección, barrio o negocio</label>'+
     '<form id="ry-place-form" class="search-place"><input id="ry-place-search" autocomplete="off" placeholder="Ej. Carrera 6 # 8-25, Popayán"><button class="button primary" type="submit">'+icon('search',17)+' Buscar</button></form>'+
     '<div id="ry-place-results" aria-live="polite"></div>'+
     '<button type="button" id="ry-show-map" class="button outline wide ry-map-toggle">'+icon('pin',17)+' ¿No aparece tu dirección? Marcar en el mapa</button>'+ '<div id="ry-map-section" class="hide"><div class="map-steps"><b>Toca el punto donde deben llegar</b><small>Mueve el mapa y toca la casa o arrastra el marcador.</small></div>'+
@@ -146,6 +146,25 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
    feedback.textContent=fromMap?'Punto marcado. Ahora escribe la dirección o una referencia abajo.':'Punto seleccionado. Verifica la dirección antes de guardar.';
    updateSaveState();
   }
+
+  const recentHost=byId('ry-recent-places');
+  const validRecent=(Array.isArray(recentPlaces)?recentPlaces:[])
+   .filter(p=>p&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&String(p.address||'').trim().length>3)
+   .slice(0,4);
+  if(validRecent.length){
+   const title=document.createElement('b');title.className='ry-recent-title';title.textContent='Direcciones que ya usaste';
+   recentHost.append(title);
+   validRecent.forEach(p=>{
+    const button=document.createElement('button');button.type='button';button.className='ry-recent-button';
+    button.innerHTML=icon('pin',16)+' <span>'+escapeHTML(p.address)+'</span>';
+    button.addEventListener('click',()=>{
+     updateLocation({lat:Number(p.lat),lng:Number(p.lng)},String(p.address));
+     feedback.textContent='Dirección anterior elegida. Confirma si sigue siendo correcta.';
+    });
+    recentHost.append(button);
+   });
+  }
+
   addressInput.addEventListener('input',updateSaveState);
   async function findQuery(query){
    const text=String(query||'').trim();
