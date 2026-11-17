@@ -117,3 +117,36 @@
 .ry-recent-button svg{color:var(--purple)}
 .ry-recent-button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 @media(max-width:450px){.admin-order-meta{font-size:10px}.account-actions .button{min-width:100%}.zone-admin-item input{max-width:100%}}
+
+
+/* RutaYa v21: invitaciones para que la clienta complete su entrega */
+.recipient-page{max-width:660px}
+.recipient-head{padding:8px 0 13px}
+.recipient-head .eyebrow{color:var(--purple);font-size:11px;font-weight:900}
+.recipient-head h1{font-size:clamp(24px,5vw,34px);letter-spacing:-.03em;line-height:1.15;margin:8px 0 10px}
+.recipient-head p{font-size:14px;line-height:1.5;color:var(--sub)}
+.recipient-page .card{margin:0 0 15px}
+.recipient-page .card h3{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.recipient-form label{font-weight:800;font-size:13px;margin-top:15px}
+.recipient-form .pick-button{margin:5px 0 14px}
+.recipient-form .location-card{margin:14px 0}
+.recipient-form [data-act=completeInvite]{min-height:50px;margin-top:18px}
+.recipient-success{text-align:center;padding:36px 25px!important}
+.recipient-success>svg{color:#3c9968}
+.recipient-success h1{font-size:25px;margin-top:12px}
+.recipient-success .button{margin-top:24px}
+.invite-share{border:1px solid #c4abd9;background:#f7f2fc;box-shadow:none}
+.invite-share h3{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.invite-url{word-break:break-all;border:1px solid #ddcbea;background:#fff;border-radius:11px;padding:12px;font-size:12px;line-height:1.5;color:#5d3387;user-select:all}
+.invite-share .order-actions{margin-top:16px}
+.invite-item{margin-bottom:10px}
+.invite-item .inline-between{align-items:flex-start;gap:8px}
+.invite-item .inline-between strong{font-size:13px;line-height:1.35;flex:1}
+.invite-item .badge{flex-shrink:0;font-size:10px}
+.invite-item .order-actions{margin-top:12px}
+@media(max-width:440px){
+ .recipient-page{padding-bottom:40px}
+ .recipient-head h1{font-size:26px}
+ .invite-item .inline-between{flex-wrap:wrap}
+ .invite-item .order-actions .button{flex:1 1 auto}
+}
