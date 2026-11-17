@@ -28,7 +28,7 @@ function gpsLiveBadge(loc){
 function courierGpsCard(){
  const active=model.orders.some(o=>o.courier_id===model.user?.id&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status));
  const running=model.gpsWatch!=null;
- const synced=running&&Boolean(model.gpsLastSentAt);
+ const synced=running&&active&&Boolean(model.gpsLastSentAt);
  const status=running?(active?(synced?'Último envío GPS '+gpsElapsed(model.gpsLastSentAt):'GPS iniciado. Esperando precisión o conexión.'):
  'GPS encendido. Se enviará tu ubicación cuando tengas un domicilio activo.'):
  'GPS apagado. La clienta no verá el movimiento hasta que lo actives.';
