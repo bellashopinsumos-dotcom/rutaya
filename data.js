@@ -99,3 +99,42 @@ export async function changePassword(password){
  if(error)throw error;
  return data;
 }
+
+
+export async function createDeliveryInvitation(info){
+ if(!isLive)throw Error('El formulario compartido requiere conexión con Supabase');
+ const {data,error}=await api.rpc('create_rutaya_delivery_invite',{
+  p_description:info.items_description,
+  p_paid:info.paid!==false,
+  p_amount:info.paid===false?Math.round(Number(info.amount_to_collect)||0):0,
+  p_mode:info.delivery_mode||'normal'
+ });
+ if(error)throw error;
+ return data;
+}
+export async function listDeliveryInvitations(){
+ if(!isLive)return [];
+ const u=await currentUser();if(!u)return [];
+ const {data,error}=await api.from('delivery_invitations')
+ .select('token,created_at,expires_at,completed_at,revoked_at,items_description,delivery_mode,order_id')
+ .eq('created_by',u.id).order('created_at',{ascending:false}).limit(30);
+ if(error)throw error;
+ return data||[];
+}
+export async function getDeliveryInvitation(token){
+ if(!isLive)throw Error('Abre el enlace en la plataforma RutaYa');
+ const {data,error}=await api.rpc('get_rutaya_delivery_invite',{p_token:token});
+ if(error)throw error;
+ return data;
+}
+export async function completeDeliveryInvitation(token,details){
+ if(!isLive)throw Error('Se necesita conexión con RutaYa');
+ const {data,error}=await api.rpc('complete_rutaya_delivery_invite',{p_token:token,p_data:details});
+ if(error)throw error;
+ return data;
+}
+export async function revokeDeliveryInvitation(token){
+ if(!isLive)throw Error('Se necesita conexión con RutaYa');
+ const {error}=await api.rpc('revoke_rutaya_delivery_invite',{p_token:token});
+ if(error)throw error;
+}
