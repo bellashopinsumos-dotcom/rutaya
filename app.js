@@ -216,14 +216,14 @@ function adminHistoryPanel(o){
  '<p class="field-help">Aún no hay movimientos registrados.</p>')+'</div>';
 }
 function adminOrderCard(o){
- const pending=o.status==='pending';
+ const active=!['delivered','cancelled'].includes(o.status);
  return '<article class="order">'+
  '<div class="inline-between"><strong>'+e(o.items_description)+'</strong><span class="badge '+(o.status==='delivered'?'green':'')+'">'+e(orderStatusText(o))+'</span></div>'+
  '<div class="admin-order-meta"><span>'+e(o.source==='business'?'Negocio':'Cliente')+'</span><span>'+e(modeName(o.delivery_mode))+'</span><span>'+e(prettyTime(o.created_at))+'</span></div>'+
  '<p>'+e(o.pickup_address)+' → '+e(o.dropoff_address)+'</p>'+
  stalledNote(o)+
  (o.recipient_phone?'<p class="field-help">Contacto destinatario: <a href="tel:'+e(String(o.recipient_phone).replace(/[^\d+]/g,''))+'">'+e(o.recipient_phone)+'</a></p>':'')+
- '<div class="field-line space"><input id="fee-'+e(o.id)+'" type="number" min="0" max="1000000" value="'+e(o.fee??'')+'" placeholder="Tarifa COP" '+(pending?'':'disabled')+'><button class="button tonal small" data-act="setFee" data-id="'+e(o.id)+'" '+(pending?'':'disabled title="Solo antes de asignar"')+'>Guardar tarifa</button></div>'+
+ '<div class="field-line space"><input id="fee-'+e(o.id)+'" type="number" min="0" max="1000000" value="'+e(o.fee??'')+'" placeholder="Tarifa COP" '+(active?'':'disabled')+'><button class="button tonal small" data-act="setFee" data-id="'+e(o.id)+'" '+(active?'':'disabled title="Solo activos"')+'>Guardar tarifa</button></div>'+
  '<div class="order-actions">'+orderManageButtons(o,'admin')+
  '<a class="button outline small" target="_blank" rel="noopener noreferrer" href="'+e(trackingLink(o))+'">'+icon('navigation',16)+' Ver GPS / seguimiento</a>'+
  '<button class="button outline small" data-act="copyTrack" data-token="'+e(o.tracking_token)+'">'+icon('copy',16)+' Copiar enlace clienta</button>'+
@@ -300,7 +300,7 @@ function adminHome(){
  '<button class="button small '+(model.adminOrderFilter==='done'?'primary':'outline')+'" data-act="adminFilter" data-filter="done">Finalizados ('+done.length+')</button>'+
  '<button class="button small '+(model.adminOrderFilter==='all'?'primary':'outline')+'" data-act="adminFilter" data-filter="all">Todos</button></div>'+
  (shown.length?shown.map(adminOrderCard).join(''):empty('No hay pedidos en esta sección','Selecciona otro filtro para verlos.'))+
- '<p class="field-help">Puedes ajustar una tarifa solo mientras el pedido no haya sido asignado.</p>';
+ '<p class="field-help">Puedes editar el valor de cualquier domicilio activo; los cambios se registran. Los pedidos finalizados son históricos.</p>';
 }
 function adminRates(){
  const zs=model.adminZones.length?model.adminZones:model.zones.map(z=>({...z,active:true,is_example:true}));
