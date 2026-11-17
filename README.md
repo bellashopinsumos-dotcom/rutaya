@@ -92,3 +92,20 @@ Aplicar en orden \`supabase/schema.sql\`, \`supabase/courier-onboarding.sql\` y 
 
 ### Pendiente antes del lanzamiento comercial
 Definir **tarifas reales y límites geográficos** de zonas en Popayán; para calcular la zona automáticamente se necesitan polígonos/boundaries confirmados. Sustituir la API pública de Nominatim por un proveedor autorizado para tráfico comercial y sugerencias de direcciones. Activar servicio de notificaciones push y GPS en segundo plano mediante app compatible. Verificar documentos de domiciliarios, atención de incidentes, políticas de datos personales, términos, cobros y soporte. Hacer pruebas completas en tres celulares con los papeles de cliente, negocio y repartidor. El piloto no equivale a un lanzamiento validado.
+
+
+## RutaYa v21 — La tienda envía un enlace y la clienta completa la entrega
+
+1. El negocio registrado entra a **/negocios/** y pulsa **Crear enlace para la clienta**. Solo escribe qué enviará, si el producto está pagado, el valor pendiente si aplica y la modalidad de domicilio.
+2. RutaYa genera un enlace exclusivo \`/confirmar/?token=UUID\` que puede copiarse o enviarse por WhatsApp. Vence en **48 horas** y se puede desactivar desde el negocio mientras siga pendiente.
+3. La clienta abre el enlace **sin registrarse**, verifica la tienda y la descripción de su producto, escribe su nombre, celular, dirección, zona de tarifa y referencias; selecciona el punto GPS usando búsqueda, ubicación actual o mapa.
+4. El servidor comprueba el enlace, el formato de datos y la zona activa; **solo después de su confirmación** crea un pedido normal en Supabase asociado a la tienda, con la tarifa calculada y el horario de entrega de la modalidad elegida.
+5. La clienta ve **su enlace de seguimiento** inmediatamente; el negocio puede consultar el pedido desde Entregas. Los repartidores lo ven cuando se habilita su despacho.
+
+**Seguridad:** la clienta no puede cambiar producto, deuda o modalidad, porque esos valores están en la invitación protegida por Supabase; únicamente completa sus datos de entrega. El token es aleatorio, no aparece en catálogos públicos, requiere posesión del enlace y solo puede crear un pedido. La tabla tiene RLS; únicamente el dueño y administración pueden listar los enlaces. Compartir un enlace concede la capacidad de usarlo, por lo que debe enviarse únicamente a la destinataria. Si se envía al número incorrecto, desactivarlo desde negocios. El formulario debe tratar los datos del cliente conforme a las obligaciones colombianas de protección de datos personales.
+
+**Importante:** las cuatro tarifas base actuales continúan marcadas como **ejemplos**. El precio es estimado según la zona que elige la clienta; no se dispone aún de geocodificación comercial ni verificación automática de polígonos por barrio. Los mensajes de WhatsApp se abren preparados, pero la tienda debe pulsar Enviar.
+
+**Despliegue:** el archivo reproducible está en \`supabase/invitaciones-v21.sql\`. Para instalaciones nuevas, ejecutarlo después de \`supabase/operacion-v20.sql\`. La página compartida es \`confirmar/index.html\`.
+
+**Verificación interna:** se comprobó crear invitación con cuenta del negocio, leerla anónimamente, completarla sin sesión, generar exactamente un pedido y rechazar el segundo envío; esta prueba se ejecutó dentro de una transacción con ROLLBACK para no guardar domicilios ficticios. Falta prueba visual desde un celular real antes del lanzamiento.
