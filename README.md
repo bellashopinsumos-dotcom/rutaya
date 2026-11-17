@@ -137,3 +137,26 @@ Si el paquete está en estado **recogido** o **en destino**, liberar solo es pos
 **Migración:** \`supabase/administracion-gps-v23.sql\`, aplicada al proyecto RutaYa. No modificar la base de inventario de Bella Shop.
 
 **Pruebas:** se validaron funciones SQL con transacciones revertidas: ajuste de tarifa de pedido recogido, bloqueo de liberación sin custodia, liberación administrada, asignación, historial, visibilidad GPS para quien posee el token, ocultamiento de ubicaciones antiguas y eliminación voluntaria por el propio repartidor. Se conservaron todos los pedidos anteriores.
+
+
+## RutaYa v25 — Fase de operación avanzada
+
+### Entregado y conectado a Supabase
+- **Mapa de flota:** Administración → Mapa: muestra los domiciliarios aprobados con servicios activos y GPS recibido en los últimos dos minutos, desde un mapa OpenStreetMap. Ninguna cuenta de invitado puede consultar los puntos GPS de toda la flota.
+- **Rutas Enrutadas agrupadas:** Administración → Mapa propone grupos disponibles de 2 a 4 pedidos del mismo negocio, recogida y zona; puede asignarlos de forma atómica a un domiciliario aprobado que tenga capacidad. Google Maps dibuja el recorrido aproximado con paradas. El repartidor puede abrir una ruta con varios domicilios desde «Mis servicios». **No es optimización automática por tráfico ni asignación sin consentimiento del administrador**.
+- **Código de entrega:** todos los pedidos nuevos tienen código de 6 dígitos generado en servidor; se añadieron códigos a los pedidos anteriores que siguen activos. La clienta ve el código privado al recogerse el paquete. El repartidor debe solicitarlo y compartir GPS dentro de 200 m para finalizar. Máximo cinco intentos fallidos; el código no se publica en su pantalla.
+- **Programación:** cliente y negocio pueden escoger fecha y hora en los pedidos creados directamente, con 30 minutos a 30 días de anticipación. Los pedidos Enrutados respetan el despacho mínimo de la tarde. El servidor calcula la hora de habilitación, no el navegador.
+- **Caja y liquidaciones:** Administración → Caja muestra estadísticas agregadas por período, tarifas registradas, entregas, cancelaciones y dinero de productos por conciliar. Puede registrar el importe de pago individual para pedidos realmente entregados y marcarlo pagado al conciliar fuera de RutaYa. Repartidores → Mi caja muestra el total bruto y los pagos registrados. **No se transfiere dinero ni se calculan comisiones automáticamente**.
+- **Ayuda y reportes:** negocio, cliente con cuenta y domiciliario asignado pueden reportar un problema en cada pedido. Administración → Ayuda permite marcarlos solucionados. La clienta sin cuenta puede reportar desde su enlace individual de seguimiento, sujeto a límites por pedido.
+- **Calificaciones:** la clienta puede dar 1–5 estrellas y comentario breve una sola vez, después de una entrega. Administración → Equipo muestra el promedio de reseñas por repartidor.
+- **Revisión de repartidores:** antes de aprobar nuevas cuentas, Administración debe marcar que verificó identidad y vehículo fuera de RutaYa. No se almacenan fotos ni números de documentos en este formulario.
+- **Notificaciones:** siguen funcionando avisos internos y notificaciones opcionales del navegador mientras la página está abierta; no se presentan como push con la aplicación cerrada.
+- **Migración reproducible:** \`supabase/fase25-operacion-avanzada.sql\` se ejecuta después de las migraciones anteriores en instalaciones nuevas. Los cambios de esta fase ya están aplicados en el proyecto Supabase RutaYa principal.
+
+### Requisitos que siguen pendientes para un lanzamiento comercial
+- **GPS en segundo plano fiable:** requiere app móvil nativa o compatible y permisos de ubicación persistentes. La PWA actual no ofrece ubicación continua con iPhone bloqueado.
+- **Push con la app cerrada:** requiere backend de envíos y configuración Web Push/APNs, permisos y pruebas en dispositivos.
+- **Tarifas por kilómetros de recorrido real y sugerencias geocodificadas a escala:** requieren proveedor de rutas y mapas adecuado al uso comercial, definición de zonas y precios reales en Popayán. No se inventan tarifas por km.
+- **Evidencia fotográfica privada de entrega:** exige almacenamiento protegido, políticas de acceso, retención y consentimiento; el comprobante actual es código de 6 dígitos más ubicación GPS y evento auditado.
+- **Operación de pagos:** conciliación bancaria, reglas de comisión del repartidor, recibos, facturación y devoluciones deben definirse antes de automatizar dinero.
+- **Pruebas de extremo a extremo en dispositivos reales:** registro, mapa, OTP, aceptación, entrega, dinero, ayuda y calificación; la validación actual incluye revisión estática del código y consultas de permisos, no sustituye el piloto real.
