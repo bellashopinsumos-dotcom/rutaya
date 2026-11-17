@@ -4,3 +4,29 @@
 @media(min-width:780px){.modal-back{align-items:center;padding:18px}.modal{border-radius:26px;max-height:92vh}.desktop-link{display:inline}.hero{padding:46px}.hero .illustration{opacity:.35}.nav-bottom{left:50%;transform:translateX(-50%);width:460px;border:1px solid var(--border);border-radius:25px 25px 0 0}.header-space{padding-top:34px}}
 @media(max-width:620px){.hero{padding:26px 23px}.hero .illustration{display:none}.services{gap:9px}.service{padding:13px;min-height:145px;border-radius:18px}.service .ico-wrap{height:46px;width:46px}.service b{font-size:13px}.service small{font-size:11px}.grid2,.split{grid-template-columns:1fr}.stats{gap:7px}.stat{padding:13px}.stat .num{font-size:20px}.card{padding:18px}.button{font-size:13px}.toprow{padding:8px 15px}.wrap{padding:0 15px}.order-actions>*{min-width:130px}.desktop-link{display:none}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* RutaYa: modalidades de servicio y seguimiento compartido */
+.delivery-choice{padding:0;border:0;margin:22px 0 12px;min-width:0}
+.delivery-choice legend{padding:0 0 10px;font-size:14px;font-weight:900;color:var(--dark)}
+.mode-grid{display:grid;grid-template-columns:1fr;gap:9px}
+.mode-tile{position:relative;display:block;margin:0!important;width:100%;padding:13px 14px;border:1.5px solid #e1d7eb;border-radius:15px;background:#fff;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+.mode-tile.selected{border-color:var(--purple);background:#f8f1ff;box-shadow:0 0 0 2px #a45cf220}
+.mode-tile:focus-within{outline:2px solid #6631ae;outline-offset:2px}
+.mode-tile input[type="radio"]{position:absolute;opacity:0;width:1px;height:1px;padding:0;border:0;pointer-events:none}
+.mode-tile-title{display:flex;align-items:center;gap:8px;color:var(--dark);font-size:14px}
+.mode-tile-title .ico{color:var(--purple)}
+.mode-tile-title strong{margin-left:auto;white-space:nowrap;color:var(--purple);font-weight:900}
+.mode-tile small{display:block;margin-top:5px;font-size:12px;font-weight:500;line-height:1.45}
+.mode-hint{font-size:12px;color:#736184;margin:10px 0 5px}
+.mode-summary{display:flex;flex-direction:column;gap:5px;padding:10px 12px;margin:11px 0;background:#f4effa;border:1px solid #e8ddf3;border-radius:13px}
+.mode-summary b{display:flex;align-items:center;gap:7px;color:#55308c;font-size:13px}
+.mode-summary small{font-size:11.5px;line-height:1.4}
+.mode-summary.mode-urgent{background:#fff6ec;border-color:#f9e3c3}
+.mode-summary.mode-urgent b{color:#99570a}
+.mode-summary.mode-routed{background:#eff7ff;border-color:#d8e8fa}
+.mode-summary.mode-routed b{color:#28608e}
+.business-live{margin:16px 0 5px;background:#fbfaff;border-color:#cdb7ed;box-shadow:none}
+.business-live .inline-between h3{margin:0}
+.business-live .map-preview{margin-top:13px}
+.business-live .order-actions{margin-top:14px}
+@media(min-width:680px){.mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.mode-tile{min-height:127px}.mode-tile-title{flex-wrap:wrap}.mode-tile-title strong{width:100%;margin-left:0}}
