@@ -63,3 +63,13 @@ Abrir con servidor estático (los módulos JS no funcionan desde `file://`): `py
 5. El repartidor toca **Comprobar si ya me aprobaron** y después puede activar su GPS y aceptar servicios. El administrador también puede suspenderlo cuando no tiene pedidos activos.
 
 Este procedimiento evita compartir contraseñas o conceder permisos de administrador a los repartidores. La cuenta fundadora de Bella Shop fue habilitada como administradora de RutaYa sin cambiar su rol empresarial. La migración reproducible está en `supabase/courier-onboarding.sql`. Antes de un lanzamiento comercial hacen falta controles adicionales de identidad, documentación, privacidad, ubicación y operación.
+
+
+## Selección de direcciones y navegación (v18)
+
+- Las pantallas de **cliente**, **negocio** y **Mi tienda** abren un selector con **mapa interactivo dentro de RutaYa**, sin necesidad de copiar coordenadas. Mueve el mapa y toca la calle/casa, o arrastra el marcador, y escribe una dirección/referencia.
+- El mapa del selector usa **Leaflet + OpenStreetMap**. La búsqueda manual por botón usa de forma limitada el servicio público **Nominatim** (sin autocompletado). Para uso comercial o alto tráfico se requiere contratar un geocodificador propio o de pago, con límites y privacidad apropiados. La política pública de Nominatim limita el total de solicitudes de la aplicación a 1 por segundo, por lo que **esta versión solo sirve para un piloto pequeño**, no una operación escalable.
+- Si una ubicación no está indexada, el usuario puede **marcarla tocando el mapa** y escribir una referencia, sin depender de resultados del buscador. Para Bella Shop, registrar primero su ubicación desde Mi tienda.
+- El repartidor encuentra dos botones: **Ruta al punto de recogida** y **Ruta a la dirección del cliente**. Ambos abren la navegación real por calles en Google Maps, con el destino exacto del pedido, y dispone de un botón para **Ver punto en el mapa** sin salir de RutaYa.
+- La ventana de mapa interno del repartidor muestra el destino, **no una ruta vial calculada**. Google Maps sí calcula el trayecto al abrir su aplicación. Para navegar, el GPS del repartidor debe estar activo y Google Maps debe tener permiso de ubicación.
+- La API de Google Maps integrada sigue **sin clave**; no presentarse como una búsqueda propia de Google Maps. No hay estimaciones de llegada ni navegación en segundo plano dentro de RutaYa.
