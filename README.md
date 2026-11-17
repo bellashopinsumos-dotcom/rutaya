@@ -117,3 +117,23 @@ En **/admin/**, la vista predeterminada muestra **Activos**. También se puede f
 Si el paquete ya fue recogido, la interfaz exige una segunda confirmación explícita y advierte que el cambio de estado **no devuelve el producto, no reembolsa dinero ni notifica directamente al repartidor o a la destinataria**. La tienda debe coordinar esos pasos manualmente. Los permisos se verifican en la función SQL, no solo en el navegador. El evento conserva actor y motivo, y el pedido no se borra.
 
 Los negocios y clientes conservan las restricciones anteriores: la administración tiene el permiso extraordinario. El archivo de migración es `supabase/admin-cancelaciones-v22.sql`. Se probó una cancelación post-recogida dentro de transacción revertida con `ROLLBACK`, sin modificar los pedidos existentes.
+
+
+## RutaYa v23 — centro de control y seguimiento GPS del destinatario
+
+**Administración (dueño de RutaYa)** puede gestionar todos los pedidos activos: cancelar (con motivo), liberar el repartidor, cambiar o asignar a un domiciliario aprobado, ajustar la tarifa con evento auditado, consultar historial y copiar/abrir el seguimiento de cada pedido. La plataforma no permite editar retroactivamente el estado o precio de entregados/cancelados: esos registros deben seguir siendo verificables. El gestor también administra cuentas de reparto y zonas de tarifa.
+
+Si el paquete está en estado **recogido** o **en destino**, liberar solo es posible después de marcar que el administrador **recuperó físicamente el paquete**, y cambiar de repartidor solo si el nuevo recibió realmente el paquete. Ambas confirmaciones se validan en Supabase y quedan auditadas con el administrador, repartidor anterior, repartidor nuevo, fecha y motivo. No se producen devoluciones físicas ni reembolsos automáticamente.
+
+**GPS de repartidor y cliente**:
+1. El repartidor aprobado abre \`/repartidores/\`, acepta un domicilio y pulsa **Activar mi GPS**. Debe aceptar permiso de ubicación y precisión suficiente (máximo 100 m).
+2. Con un pedido activo y RutaYa abierta, el GPS se comunica a Supabase aproximadamente cada 12 segundos. El panel muestra si está preparado, compartiendo o con problemas de permiso/conexión/precisión.
+3. Bella Shop o administración copia el enlace privado individual de seguimiento y lo envía a la clienta por WhatsApp. También puede enviarse automáticamente el enlace al finalizar el formulario autogestionado; abrirlo no exige cuenta.
+4. La clienta abre \`/seguimiento/?token=...\`. La pantalla consulta el estado y última ubicación aproximadamente cada 8,5 segundos; si hay GPS reciente, muestra marcador, hora de actualización y botón para abrir en Google Maps la ruta desde ese punto al destino.
+5. El repartidor puede pulsar **Detener GPS**. La posición desaparece del servidor de inmediato si la operación de borrado tiene conexión; de todos modos el sistema deja de mostrar una ubicación que lleve más de 2 minutos sin actualizarse.
+
+**Limitación real:** los navegadores de iPhone y Android pueden pausar el GPS en segundo plano, al bloquear pantalla o al cerrar RutaYa. No hay seguimiento garantizado con el teléfono bloqueado, notificaciones push con la app cerrada ni tiempo estimado de llegada fiable. Para eso hará falta una aplicación móvil de repartidores con permisos de ubicación en segundo plano y mecanismos apropiados de consentimiento. La ruta de Google Maps es a partir del **último punto GPS**, no una simulación del recorrido en tiempo real.
+
+**Migración:** \`supabase/administracion-gps-v23.sql\`, aplicada al proyecto RutaYa. No modificar la base de inventario de Bella Shop.
+
+**Pruebas:** se validaron funciones SQL con transacciones revertidas: ajuste de tarifa de pedido recogido, bloqueo de liberación sin custodia, liberación administrada, asignación, historial, visibilidad GPS para quien posee el token, ocultamiento de ubicaciones antiguas y eliminación voluntaria por el propio repartidor. Se conservaron todos los pedidos anteriores.
