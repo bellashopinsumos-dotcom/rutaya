@@ -6,7 +6,7 @@ const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
 
 
@@ -167,6 +167,144 @@ function recipientInvitationPage(){
  '<p class="field-help">Al confirmar, enviarás estos datos a '+e(i.business_name)+' y al domiciliario asignado para realizar la entrega.</p>'+
  '<button class="button primary wide" data-act="completeInvite">'+icon('check',18)+' Confirmar mi dirección y enviar datos</button>'+
  '<p class="field-help">No necesitas registrarte. Este formulario solo puede enviarse una vez.</p></section>';
+}
+
+
+function orderSupportButton(o,role){
+ if(!model.user||role==='admin')return '';
+ if(role==='repartidores'&&o.courier_id!==model.user.id)return '';
+ return '<button class="button outline small" data-act="openSupport" data-id="'+e(o.id)+'">'+icon('alert',16)+' Pedir ayuda</button>';
+}
+function supportOrderModal(){
+ const o=model.orders.find(p=>p.id===model.supportOrderId);
+ if(!o)return '';
+ return modal('Reportar problema del domicilio',
+ '<p>Cuenta qué ocurrió. Administración revisará el caso; si es una urgencia de seguridad, contacta directamente los servicios de emergencia.</p>'+
+ '<p class="field-help">'+e(o.items_description)+'</p>'+
+ '<label for="support-message">Describe el problema</label><textarea id="support-message" rows="4" maxlength="800" placeholder="Ej. La dirección no coincide o no puedo contactar al destinatario."></textarea>',
+ '<button class="button outline" data-act="closeSupport">Volver</button>'+
+ '<button class="button primary" data-act="submitSupport">Enviar reporte</button>');
+}
+function deliveryCodeModal(){
+ const o=model.orders.find(x=>x.id===model.deliveryOtpOrderId);
+ if(!o)return '';
+ return modal('Confirmar entrega con código',
+ '<p>Solicita a la clienta los <strong>seis números</strong> que aparecen en su enlace de seguimiento. Confirma la entrega únicamente después de entregarle el paquete.</p>'+
+ '<label for="delivery-otp">Código de la clienta</label>'+
+ '<input id="delivery-otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" pattern="[0-9]{6}">'+
+ '<p class="field-help">RutaYa verificará el código y que estés a máximo 200 metros del destino con buena señal GPS.</p>',
+ '<button class="button outline" data-act="closeOtp">Volver</button>'+
+ '<button class="button primary" data-act="confirmOtp">Confirmar entrega</button>');
+}
+function payoutSet(o){
+ const p=model.payouts.find(x=>x.order_id===o.id);
+ return '<div class="finance-payout"><div><b>'+e(o.items_description)+'</b><small>Tarifa domicilio '+money(o.fee)+
+ ' · Pago repartidor '+(p?money(p.amount):'sin definir')+(p?.paid_at?' · Pagado':' · Pendiente')+'</small></div>'+
+ '<div class="order-actions"><input id="payout-'+e(o.id)+'" type="number" min="0" max="1000000" placeholder="Pago COP" value="'+e(p?.amount??'')+'" '+(p?.paid_at?'disabled':'')+'>'+
+ '<button class="button tonal small" data-act="setPayout" data-id="'+e(o.id)+'" '+(p?.paid_at?'disabled':'')+'>Guardar</button>'+
+ '<button class="button primary small" data-act="markPayoutPaid" data-id="'+e(o.id)+'" '+(p?.paid_at?'disabled':'')+'>Marcar pagado</button></div></div>';
+}
+function courierCashPage(){
+ const c=model.cash||{};
+ return '<div class="pagehead"><h1>Mi caja de domicilios</h1></div>'+
+ '<div class="card soft"><h3>Resumen de entregas completadas</h3><div class="stats">'+
+ '<div class="stat"><div class="num">'+(c.delivered??0)+'</div><small>Entregas</small></div>'+
+ '<div class="stat"><div class="num">'+money(c.gross_delivery_fees??0)+'</div><small>Tarifas brutas</small></div></div>'+
+ '<p>Pagos reconocidos por administración: <b>'+money(c.approved_payouts??0)+'</b></p>'+
+ '<p>Pagos ya registrados como entregados: <b>'+money(c.paid_payouts??0)+'</b></p>'+
+ '<p>Pagos pendientes: <b>'+money(c.unpaid_payouts??0)+'</b></p>'+
+ '<p>Dinero de productos por conciliar: <b>'+money(c.cash_products_to_reconcile??0)+'</b></p>'+
+ '<p class="field-help">Las tarifas brutas no son tu ganancia neta. Los valores pendientes de producto no son ingresos tuyos. Administración definirá y confirmará cada pago.</p></div>'+
+ '<div class="card"><h3>Pagos registrados</h3>'+
+ (model.payouts.length?model.payouts.map(p=>'<div class="inline-between payout-row"><span>'+e(String(p.order_id).slice(0,8))+' · '+e(p.paid_at?'Pagado':'Pendiente')+'</span><b>'+money(p.amount)+'</b></div>').join(''):
+ '<p class="field-help">Todavía no hay pagos individuales registrados.</p>')+'</div>';
+}
+function adminStatsPage(){
+ const stats=model.stats||{},days=model.statsDays||30;
+ return '<div class="pagehead"><h1>Estadísticas y caja</h1></div>'+
+ '<div class="admin-order-filter">'+[7,30,90].map(x=>'<button class="button small '+(days===x?'primary':'outline')+'" data-act="statsRange" data-days="'+x+'">'+x+' días</button>').join('')+'</div>'+
+ '<div class="stats"><div class="stat"><div class="num">'+(stats.orders??0)+'</div><small>Pedidos</small></div>'+
+ '<div class="stat"><div class="num">'+(stats.delivered??0)+'</div><small>Entregados</small></div>'+
+ '<div class="stat"><div class="num">'+(stats.cancelled??0)+'</div><small>Cancelados</small></div></div>'+
+ '<div class="card"><h3>Movimiento económico</h3><p>Tarifas de domicilios entregados: <b>'+money(stats.fees_delivered??0)+'</b></p>'+
+ '<p>Tarifas solicitadas en el período: <b>'+money(stats.fees_requested??0)+'</b></p>'+
+ '<p>Productos pendientes de conciliar: <b>'+money(stats.product_cash_to_collect??0)+'</b></p>'+
+ '<p>Promedio de duración de entregas: <b>'+(stats.average_delivery_minutes??'—')+' minutos</b></p>'+
+ '<p class="field-help">Son montos operativos y no representan utilidades, ingresos recibidos ni dinero ya pagado. Las tarifas base siguen siendo de prueba hasta que las confirmes.</p></div>'+
+ '<div class="card"><h3>Pagos a domiciliarios</h3>'+
+ '<p>Define cuánto corresponde a cada repartidor y marca pagado únicamente cuando realmente lo hayas liquidado.</p>'+
+ (model.orders.filter(o=>o.status==='delivered'&&o.courier_id).slice(0,40).map(payoutSet).join('')||
+ '<p class="field-help">Aún no hay entregas con repartidor para liquidar.</p>')+
+ '</div>';
+}
+function adminSupportPage(){
+ const cases=model.supportCases||[];
+ return '<div class="pagehead"><h1>Ayuda y novedades</h1></div>'+
+ '<div class="card soft"><p>Reportes de los negocios, clientes y repartidores. Cada caso pertenece a un pedido y queda registrado. La resolución del caso no cancela el pedido automáticamente.</p></div>'+
+ (cases.length?cases.map(c=>'<div class="card"><div class="inline-between"><b>Pedido '+e(String(c.order_id).slice(0,8))+'</b><span class="badge">'+e(c.status==='open'?'Pendiente':'Resuelto')+'</span></div>'+
+ '<p>'+e(c.message)+'</p><small>'+e(prettyTime(c.created_at))+'</small>'+
+ (c.status==='open'?'<div class="order-actions"><button class="button primary small" data-act="resolveSupport" data-case="'+e(c.id)+'">Marcar solucionado</button></div>':'')+'</div>').join(''):
+ empty('Sin reportes por ahora','Cuando alguien pida ayuda, aparecerá aquí.','clipboard'));
+}
+function verificationControls(c){
+ const v=model.verifications.find(x=>x.user_id===c.user_id)||{};
+ return '<div class="courier-checks"><b>Revisión para aprobar</b>'+
+ '<label><input type="checkbox" id="verify-id-'+e(c.user_id)+'" '+(v.identity_checked?'checked':'')+'> Identidad y documento verificados fuera de RutaYa</label>'+
+ '<label><input type="checkbox" id="verify-vehicle-'+e(c.user_id)+'" '+(v.vehicle_checked?'checked':'')+'> Vehículo y licencia revisados, si aplica</label>'+
+ '<input type="text" id="verify-notes-'+e(c.user_id)+'" maxlength="400" placeholder="Observaciones internas (sin números de documento)" value="'+e(v.verification_notes||'')+'">'+
+ '<button class="button outline small" data-act="verifyCourier" data-user="'+e(c.user_id)+'">Guardar verificaciones</button>'+
+ '<p class="field-help">No subas documentos de identidad por este formulario: aún no se ha habilitado un almacenamiento privado específico.</p></div>';
+}
+function approximateRoute(orders){
+ if(!orders.length)return '';
+ const first=orders[0];
+ const pending=[...orders],sorted=[];
+ let last={lat:first.pickup_lat,lng:first.pickup_lng};
+ while(pending.length){
+  let idx=0,best=Infinity;
+  pending.forEach((p,i)=>{
+   const d=data.distance(last,{lat:p.dropoff_lat,lng:p.dropoff_lng});
+   if(d<best){best=d;idx=i}
+  });
+  const next=pending.splice(idx,1)[0];sorted.push(next);
+  last={lat:next.dropoff_lat,lng:next.dropoff_lng};
+ }
+ const params=new URLSearchParams({api:'1',origin:first.pickup_lat+','+first.pickup_lng,
+ destination:sorted.at(-1).dropoff_lat+','+sorted.at(-1).dropoff_lng,travelmode:'driving'});
+ if(sorted.length>1)params.set('waypoints',sorted.slice(0,-1).map(x=>x.dropoff_lat+','+x.dropoff_lng).join('|'));
+ return 'https://www.google.com/maps/dir/?'+params.toString();
+}
+function routedGroups(){
+ const grouped=new Map();
+ model.orders.filter(o=>o.delivery_mode==='routed'&&o.status==='pending'&&Date.parse(o.dispatch_after)<=Date.now()&&o.business_id).forEach(o=>{
+  const key=[o.business_id,o.pickup_address,o.dropoff_zone].join('::');
+  if(!grouped.has(key))grouped.set(key,[]);
+  grouped.get(key).push(o);
+ });
+ return [...grouped.values()].filter(g=>g.length>=2).map(g=>g.slice(0,4));
+}
+function adminRouteGroups(){
+ const groups=routedGroups();
+ model.routeGroups=groups;
+ return '<div class="card"><h3>Enrutados por sector</h3><p>RutaYa propone agrupar entregas pendientes del mismo negocio y zona. El orden de paradas se aproxima por distancia en línea recta; Google Maps calcula las calles al abrirlo.</p>'+
+ (groups.length?groups.map((g,i)=>'<div class="route-group"><b>'+e(g[0].dropoff_zone)+' · '+g.length+' entregas</b>'+
+ '<p>'+g.map(o=>e(o.dropoff_address)).join(' · ')+'</p>'+
+ '<a class="button outline small" target="_blank" rel="noopener noreferrer" href="'+e(approximateRoute(g))+'">'+icon('route',16)+' Abrir recorrido en Google Maps</a>'+
+ '<button class="button primary small" data-act="assignGroup" data-index="'+i+'">Asignar juntas</button></div>').join(''):
+ '<p class="field-help">No hay grupos de dos o más Enrutados listos para despachar.</p>')+
+ '<p class="field-help">La agrupación es una sugerencia operativa, no una optimización garantizada del tráfico ni un tiempo de llegada.</p></div>';
+}
+function adminFleetPage(){
+ const list=model.fleet||[];
+ return '<div class="pagehead"><h1>Mapa de domiciliarios</h1></div>'+
+ '<div class="card"><div class="inline-between"><b>'+list.length+' repartidores con servicios activos</b>'+
+ '<button class="button outline small" data-act="refreshFleet">'+icon('crosshair',16)+' Actualizar</button></div>'+
+ '<div id="rutaya-fleet-map" class="fleet-map"></div>'+
+ '<p class="field-help">Se muestran ubicaciones GPS recibidas hace menos de dos minutos. Solo Administración puede ver este mapa. No indica movimiento continuo con el teléfono bloqueado.</p></div>'+
+ (list.length?list.map(c=>'<div class="card"><div class="inline-between"><b>'+e(c.name||'Domiciliario')+'</b>'+gpsLiveBadge({updated_at:c.seen_at})+'</div>'+
+ '<p>'+c.active_orders+' entregas activas · '+e(c.seen_at?'Señal '+gpsElapsed(c.seen_at):'Sin ubicación reciente')+'</p>'+
+ (c.lat!=null?'<a class="button outline small" target="_blank" rel="noopener" href="'+e(navigationUrl({lat:c.lat,lng:c.lng}))+'">'+icon('pin',16)+' Abrir punto GPS</a>':'')+'</div>').join(''):'')+
+ adminRouteGroups();
 }
 
 function isAdmin(){return Boolean(model.profile?.is_admin||model.profile?.role==='admin')}
