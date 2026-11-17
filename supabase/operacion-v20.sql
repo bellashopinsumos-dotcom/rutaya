@@ -234,3 +234,44 @@ grant execute on function public.release_rutaya_order(uuid,text) to authenticate
 grant execute on function public.admin_reassign_rutaya_order(uuid,text) to authenticated;
 grant execute on function public.admin_upsert_rutaya_zone(text,integer,boolean,boolean) to authenticated;
 grant execute on function public.admin_get_rutaya_zones() to authenticated;
+
+
+-- Asignación directa a un domiciliario aprobado.
+CREATE OR REPLACE FUNCTION public.admin_assign_rutaya_order(p_order_id uuid, p_courier_id uuid, p_reason text)
+ RETURNS orders
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+ v_admin uuid:=auth.uid();v_order public.orders;v_profile public.profiles;
+ v_count integer;v_picked integer;v_reason text;
+begin
+ if v_admin is null or not public.rutaya_is_role('admin') then raise exception 'Solo administración puede asignar domicilios';end if;
+ v_reason:=left(btrim(coalesce(p_reason,'')),200);
+ if length(v_reason)<5 then raise exception 'Escribe un motivo de al menos cinco caracteres';end if;
+ if p_courier_id is null then raise exception 'Selecciona un domiciliario';end if;
+ select * into v_order from public.orders where id=p_order_id for update;
+ if v_order.id is null then raise exception 'Pedido no encontrado';end if;
+ if v_order.status not in('pending','accepted','at_pickup') then
+  raise exception 'No puedes reasignar un paquete ya recogido o finalizado';
+ end if;
+ if v_order.status='pending' and v_order.dispatch_after>now() then
+  raise exception 'Este servicio enrutado aún no está disponible para despacho';
+ end if;
+ select * into v_profile from public.profiles where user_id=p_courier_id for update;
+ if v_profile.user_id is null or v_profile.role<>'courier' or not v_profile.approved then
+  raise exception 'Ese domiciliario no está autorizado';
+ end if;
+ select count(*) into v_count from public.orders where courier_id=p_courier_id and status in('accepted','at_pickup','picked_up','at_dropoff') and id<>p_order_id;
+ select count(*) into v_picked from public.orders where courier_id=p_courier_id and status in('picked_up','at_dropoff') and id<>p_order_id;
+ if v_count>=5 then raise exception 'El repartidor ya tiene cinco servicios activos';end if;
+ if v_picked>0 then raise exception 'El repartidor debe finalizar sus entregas recogidas primero';end if;
+ update public.orders set courier_id=p_courier_id,status='accepted',updated_at=now()
+ where id=p_order_id returning * into v_order;
+ insert into public.order_events(order_id,event,actor_id)
+ values(p_order_id,'assigned_by_admin: '||v_reason,v_admin);
+ return v_order;
+end;$function$;
+revoke execute on function public.admin_assign_rutaya_order(uuid,uuid,text) from public,anon;
+grant execute on function public.admin_assign_rutaya_order(uuid,uuid,text) to authenticated;
