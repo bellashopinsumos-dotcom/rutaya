@@ -138,3 +138,27 @@ export async function revokeDeliveryInvitation(token){
  const {error}=await api.rpc('revoke_rutaya_delivery_invite',{p_token:token});
  if(error)throw error;
 }
+
+
+export async function adminReleaseOrder(id,reason,packageRecovered=false){
+ if(!isLive)throw Error('La liberación necesita conexión con Supabase');
+ const {data,error}=await api.rpc('admin_release_rutaya_order',{
+  p_order_id:id,p_reason:reason,p_handover_confirmed:packageRecovered===true
+ });
+ if(error)throw error;
+ return data;
+}
+export async function adminForceAssignOrder(id,courierId,reason,packageTransferred=false){
+ if(!isLive)throw Error('La reasignación necesita conexión con Supabase');
+ const {data,error}=await api.rpc('admin_force_assign_rutaya_order',{
+  p_order_id:id,p_courier_id:courierId,p_reason:reason,p_handover_confirmed:packageTransferred===true
+ });
+ if(error)throw error;
+ return data;
+}
+export async function adminOrderHistory(id){
+ if(!isLive)return [];
+ const {data,error}=await api.rpc('admin_rutaya_order_history',{p_order_id:id});
+ if(error)throw error;
+ return data||[];
+}
