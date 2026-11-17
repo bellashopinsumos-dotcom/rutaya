@@ -6,7 +6,7 @@ const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup'};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',manageOrderId:null,manageAction:null,adminZones:[],authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
 
 function modeName(v){return ({routed:'Enrutado',normal:'Normal',urgent:'Urgente'})[v]||'Normal'}
@@ -35,6 +35,55 @@ function adminCourierPage(){
  const waiting=list.filter(c=>!c.approved).length;
  const cards=list.map(c=>'<article class="card courier-admin-card"><div class="inline-between"><div><b>'+e(c.display_name||'Sin nombre')+'</b><small class="block-small">'+e(c.email||'')+'</small></div><span class="badge '+(c.approved?'green':'')+'">'+(c.approved?'Aprobado':'Pendiente')+'</span></div><div class="courier-detail">'+icon('phone',16)+' <span>'+e(c.phone||'')+'</span><span>·</span>'+icon('truck',16)+' <span>'+e(c.vehicle||'')+'</span></div><p class="field-help">Solicitud: '+e(prettyTime(c.applied_at))+'</p><div class="order-actions"><button class="button '+(c.approved?'outline':'primary')+' small" data-act="reviewCourier" data-user="'+e(c.user_id)+'" data-approve="'+(!c.approved)+'">'+icon(c.approved?'alert':'check',17)+' '+(c.approved?'Suspender acceso':'Aprobar domiciliario')+'</button></div></article>').join('');
  return '<div class="pagehead"><div><span class="eyebrow" style="color:var(--purple)">GESTIÓN DE REPARTO</span><h1>Domiciliarios</h1></div></div><div class="card soft"><h2>Agrega un domiciliario</h2><p>Envía este enlace para que el repartidor cree una cuenta y solicite acceso. Solo podrás habilitarlo tú desde este panel.</p><button class="button primary wide" data-act="copyCourierInvite">'+icon('copy',17)+' Copiar enlace de registro</button><a class="button outline wide space" href="'+e(url('repartidores/'))+'" target="_blank" rel="noopener">'+icon('external',17)+' Ver página de registro</a></div><div class="inline-between space"><h2>Solicitudes</h2><span class="badge">'+waiting+' por aprobar</span></div>'+ (list.length?cards:empty('Sin solicitudes todavía','Comparte el enlace con el primer domiciliario para comenzar.','user'))+'<div class="hint">'+icon('shield',19)+' Antes de aprobar, confirma personalmente la identidad, documentación, licencia cuando aplique y condiciones de servicio. Aprobar habilita el acceso a pedidos.</div>';
+}
+
+
+function isAdmin(){return Boolean(model.profile?.is_admin||model.profile?.role==='admin')}
+function inactiveMinutes(o){return Math.max(0,Math.floor((Date.now()-new Date(o.updated_at||o.created_at).getTime())/60000))}
+function stalled(o){
+ if(['delivered','cancelled'].includes(o.status))return false;
+ if(o.status==='pending'&&o.dispatch_after&&Date.parse(o.dispatch_after)>Date.now())return false;
+ const mins={pending:30,accepted:25,at_pickup:20,picked_up:45,at_dropoff:20}[o.status]??30;
+ return inactiveMinutes(o)>=mins;
+}
+function stalledNote(o){
+ if(!stalled(o))return '';
+ return '<div class="stall-note">'+icon('alert',17)+' <span>Sin cambios hace '+inactiveMinutes(o)+' min. Revisa el servicio con la otra persona. No se cancelará automáticamente.</span></div>';
+}
+function orderManageButtons(o,role){
+ const buttons=[];
+ const canCancel=!['delivered','cancelled'].includes(o.status)&&(
+  isAdmin()&&role==='admin'&&['pending','accepted','at_pickup'].includes(o.status)
+  ||role==='negocios'&&['pending','accepted','at_pickup'].includes(o.status)
+  ||role==='cliente'&&o.status==='pending');
+ if(canCancel)buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="cancel">'+icon('close',16)+' Cancelar</button>');
+ if(role==='repartidores'&&['accepted','at_pickup'].includes(o.status)&&o.courier_id===model.user?.id)
+  buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="release">'+icon('arrowLeft',16)+' Liberar servicio</button>');
+ if(role==='admin'&&isAdmin()&&['accepted','at_pickup'].includes(o.status))
+  buttons.push('<button class="button tonal small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="reassign">'+icon('route',16)+' Reasignar</button>');
+ return buttons.join('');
+}
+function manageOrderModal(){
+ const o=model.orders.find(x=>x.id===model.manageOrderId);
+ if(!o)return '';
+ const operation=model.manageAction;
+ const isCancel=operation==='cancel',isRelease=operation==='release';
+ const title=isCancel?'Cancelar domicilio':isRelease?'Liberar servicio':'Reasignar domicilio';
+ const description=isCancel?'El pedido pasará a cancelado y ya no se podrá aceptar. Si el paquete fue recogido, contacta a administración.':
+  isRelease?'El domicilio regresará a la lista de disponibles para que otro repartidor pueda tomarlo.':'El pedido volverá a disponibles y se retirará del repartidor anterior. Solo es posible antes de recoger el paquete.';
+ return modal(title,'<p>'+description+'</p><p><strong>'+e(o.items_description)+'</strong></p><label for="ry-manage-reason">Motivo del cambio</label><textarea id="ry-manage-reason" rows="3" maxlength="200" placeholder="Ej. El cliente cambió de planes / el domiciliario no puede continuar" required></textarea><p class="field-help">Este cambio quedará registrado. Confirma primero con las personas involucradas.</p>',
+ '<button class="button outline" data-act="closeManage">Volver</button><button class="button '+(isCancel?'danger':'primary')+'" data-act="confirmManage" data-id="'+e(o.id)+'">'+icon('check',17)+' Confirmar</button>');
+}
+function adminOrderCard(o){
+ const pending=o.status==='pending';
+ return '<article class="order">'+
+ '<div class="inline-between"><strong>'+e(o.items_description)+'</strong><span class="badge '+(o.status==='delivered'?'green':'')+'">'+e(orderStatusText(o))+'</span></div>'+
+ '<div class="admin-order-meta"><span>'+e(o.source==='business'?'Negocio':'Cliente')+'</span><span>'+e(modeName(o.delivery_mode))+'</span><span>'+e(prettyTime(o.created_at))+'</span></div>'+
+ '<p>'+e(o.pickup_address)+' → '+e(o.dropoff_address)+'</p>'+
+ stalledNote(o)+
+ (o.recipient_phone?'<p class="field-help">Contacto destinatario: <a href="tel:'+e(String(o.recipient_phone).replace(/[^\d+]/g,''))+'">'+e(o.recipient_phone)+'</a></p>':'')+
+ '<div class="field-line space"><input id="fee-'+e(o.id)+'" type="number" min="0" max="1000000" value="'+e(o.fee??'')+'" placeholder="Tarifa COP" '+(pending?'':'disabled')+'><button class="button tonal small" data-act="setFee" data-id="'+e(o.id)+'" '+(pending?'':'disabled title="Solo antes de asignar"')+'>Guardar tarifa</button></div>'+
+ '<div class="order-actions">'+orderManageButtons(o,'admin')+'</div></article>';
 }
 
 function notify(message){document.querySelector('.toast')?.remove();const n=document.createElement('div');n.className='toast';n.setAttribute('role','status');n.textContent=message;document.body.append(n);clearTimeout(toastTimer);toastTimer=setTimeout(()=>n.remove(),4600)}
