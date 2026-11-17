@@ -15,7 +15,7 @@ export async function signOut(){if(isLive){const {error}=await api.auth.signOut(
 export async function getStore(){if(!isLive)return read().store;let user=await currentUser();if(!user)return null;const {data,error}=await api.from('businesses').select('id,name,address,lat,lng,approved').eq('owner_user_id',user.id).maybeSingle();if(error)throw error;return data}
 export async function getPublicStores(){if(!isLive){const s=read().store;return s?[s]:[]}const {data,error}=await api.from('businesses').select('id,name,address,lat,lng').eq('approved',true).not('lat','is',null).limit(200);if(error)throw error;return data||[]}
 export async function saveStore(input){if(!isLive){let d=read();d.store={...d.store,...input,verified:input.lat!=null&&input.lng!=null};write(d);return d.store}const {data,error}=await api.rpc('set_business_location',{p_name:input.name,p_address:input.address,p_lat:input.lat,p_lng:input.lng});if(error)throw error;return data}
-export async function getZones(){if(!isLive)return read().zones;const {data,error}=await api.from('tariff_zones').select('name,fee').order('name');if(error)throw error;return data||[]}
+export async function getZones(){if(!isLive)return read().zones;const {data,error}=await api.from('tariff_zones').select('name,fee,is_example').order('name');if(error)throw error;return data||[]}
 export async function saveZones(zones){if(!isLive){let d=read();d.zones=zones;write(d);return}throw Error('Las tarifas reales se administran mediante el panel SQL seguro de Supabase. No se editan desde el navegador.')}
 export async function createOrder(order){if(!isLive){let d=read();const p={...order,id:crypto.randomUUID(),tracking_token:crypto.randomUUID(),status:'pending',delivery_mode:order.delivery_mode||'normal',dispatch_after:calculateDispatchAfter(order.delivery_mode||'normal'),fee:estimateFee(d.zones,order.dropoff_zone,order.delivery_mode||'normal'),courier_id:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};d.orders.unshift(p);write(d);return p}let {data,error}=await api.rpc('create_rutaya_order',{p_data:order});if(error)throw error;return data}
 export function estimateFee(zones,zone,mode='normal'){const base=zones.find(x=>x.name.toLowerCase()===String(zone||'').toLowerCase())?.fee;return base==null?null:Math.max(0,Number(base)+(mode==='routed'?-1000:mode==='urgent'?1500:0))}
@@ -48,3 +48,48 @@ export async function reviewCourier(userId,approve){
  if(error)throw error;
 }
 
+
+
+export async function cancelOrder(id,reason){
+ if(!isLive)throw Error('La cancelación requiere una cuenta conectada a RutaYa');
+ const {data,error}=await api.rpc('cancel_rutaya_order',{p_order_id:id,p_reason:reason});
+ if(error)throw error;
+ return data;
+}
+export async function releaseOrder(id,reason){
+ if(!isLive)throw Error('Liberar el servicio requiere conexión');
+ const {data,error}=await api.rpc('release_rutaya_order',{p_order_id:id,p_reason:reason});
+ if(error)throw error;
+ return data;
+}
+export async function reassignOrder(id,reason){
+ if(!isLive)throw Error('La reasignación requiere conexión');
+ const {data,error}=await api.rpc('admin_reassign_rutaya_order',{p_order_id:id,p_reason:reason});
+ if(error)throw error;
+ return data;
+}
+export async function getAdminZones(){
+ if(!isLive)return read().zones.map(z=>({...z,active:true,is_example:true}));
+ const {data,error}=await api.rpc('admin_get_rutaya_zones');
+ if(error)throw error;
+ return data||[];
+}
+export async function upsertZone(name,fee,active,isExample){
+ if(!isLive)throw Error('Los precios comerciales se guardan en Supabase');
+ const {error}=await api.rpc('admin_upsert_rutaya_zone',{
+  p_name:name,p_fee:fee,p_active:active,p_is_example:isExample
+ });
+ if(error)throw error;
+}
+export async function requestPasswordReset(email){
+ if(!isLive)throw Error('Recuperar contraseñas requiere conexión');
+ const redirectTo=new URL('./?rutaya_recovery=1',import.meta.url).href;
+ const {error}=await api.auth.resetPasswordForEmail(email,{redirectTo});
+ if(error)throw error;
+}
+export async function changePassword(password){
+ if(!isLive)throw Error('Debes iniciar sesión');
+ const {data,error}=await api.auth.updateUser({password});
+ if(error)throw error;
+ return data;
+}
