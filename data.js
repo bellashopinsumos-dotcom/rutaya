@@ -68,6 +68,12 @@ export async function reassignOrder(id,reason){
  if(error)throw error;
  return data;
 }
+export async function assignOrder(id,courierId,reason){
+ if(!isLive)throw Error('La asignación directa requiere conexión con RutaYa');
+ const {data,error}=await api.rpc('admin_assign_rutaya_order',{p_order_id:id,p_courier_id:courierId,p_reason:reason});
+ if(error)throw error;
+ return data;
+}
 export async function getAdminZones(){
  if(!isLive)return read().zones.map(z=>({...z,active:true,is_example:true}));
  const {data,error}=await api.rpc('admin_get_rutaya_zones');
