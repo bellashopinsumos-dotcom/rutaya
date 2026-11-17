@@ -109,3 +109,11 @@ Definir **tarifas reales y límites geográficos** de zonas en Popayán; para ca
 **Despliegue:** el archivo reproducible está en \`supabase/invitaciones-v21.sql\`. Para instalaciones nuevas, ejecutarlo después de \`supabase/operacion-v20.sql\`. La página compartida es \`confirmar/index.html\`.
 
 **Verificación interna:** se comprobó crear invitación con cuenta del negocio, leerla anónimamente, completarla sin sesión, generar exactamente un pedido y rechazar el segundo envío; esta prueba se ejecutó dentro de una transacción con ROLLBACK para no guardar domicilios ficticios. Falta prueba visual desde un celular real antes del lanzamiento.
+
+
+## RutaYa v22 — cancelaciones administrativas en pruebas y operación
+En **/admin/**, la vista predeterminada muestra **Activos**. También se puede filtrar por **Finalizados** o **Todos**. El administrador puede **Cancelar** cualquier domicilio activo (`pending`, `accepted`, `at_pickup`, `picked_up`, `at_dropoff`) escribiendo un motivo de al menos cinco caracteres. Los pedidos `delivered` y `cancelled` permanecen en el historial y no se pueden cancelar nuevamente.
+
+Si el paquete ya fue recogido, la interfaz exige una segunda confirmación explícita y advierte que el cambio de estado **no devuelve el producto, no reembolsa dinero ni notifica directamente al repartidor o a la destinataria**. La tienda debe coordinar esos pasos manualmente. Los permisos se verifican en la función SQL, no solo en el navegador. El evento conserva actor y motivo, y el pedido no se borra.
+
+Los negocios y clientes conservan las restricciones anteriores: la administración tiene el permiso extraordinario. El archivo de migración es `supabase/admin-cancelaciones-v22.sql`. Se probó una cancelación post-recogida dentro de transacción revertida con `ROLLBACK`, sin modificar los pedidos existentes.
