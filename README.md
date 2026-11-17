@@ -4,9 +4,9 @@ Plataforma piloto de solicitudes de compra, recogida y envío con **cuatro exper
 
 ## Estado del proyecto
 
-La web funciona **en demostración local** al instalarse sin credenciales. Los pedidos se almacenan en el `localStorage` de ese navegador, por lo que **no aparecen en otro teléfono**. Se pueden recorrer pantallas, crear pedidos, guardar ubicación de un negocio, abrir navegación con Google Maps y ver el avance del pedido en el mismo navegador. Las confirmaciones de recogida y entrega comprueban una ubicación GPS a menos de 200 m del punto, con precisión menor a 100 m. La prueba local no es un sistema antifraude.
+**RutaYa ya tiene Supabase conectado** a su proyecto exclusivo `fzawdsuksyckvynrqzpf`. Las cuentas, pedidos y ubicaciones se guardan en su base de datos real. Se requiere registrar usuarios, asignar permisos y aprobar negocios/domiciliarios antes de probar flujos completos entre teléfonos. Si se elimina la configuración de Supabase, la web vuelve a demostración local y los pedidos solo se almacenan en ese navegador. Se pueden recorrer pantallas, crear pedidos, guardar ubicación de un negocio, abrir navegación con Google Maps y ver el avance del pedido en el mismo navegador. Las confirmaciones de recogida y entrega comprueban una ubicación GPS a menos de 200 m del punto, con precisión menor a 100 m. La prueba local no es un sistema antifraude.
 
-Para operar entre teléfonos se necesita Supabase; para un mapa Google dentro del selector se necesita una clave restringida de Google Maps. **No se incluye ningún secreto ni API key**.
+Supabase está configurado con una **clave pública publishable**, no con credenciales administrativas. Para Google Maps dentro del selector todavía se necesita una clave restringida de Google Maps Platform. **Nunca se deben incluir claves privadas ni service_role**.
 
 ## Conectar Google Maps
 
