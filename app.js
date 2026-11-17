@@ -1,13 +1,46 @@
 import {icon,escapeHTML as e,money,prettyTime,statusText,serviceName} from './icons.js?v=22';
 import * as data from './data.js?v=22';
-import {openPicker,gps,navigationUrl,googleEmbed,hasGoogleKey} from './maps.js?v=22';
+import {openPicker,gps,navigationUrl,googleEmbed,hasGoogleKey,trackingRouteUrl} from './maps.js?v=22';
 const cfg=window.RUTAYA_CONFIG||{};
 const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
+
+
+function gpsElapsed(iso){
+ if(!iso)return 'sin actualización';
+ const seconds=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/1000));
+ if(!Number.isFinite(seconds))return 'sin actualización';
+ if(seconds<20)return 'hace unos segundos';
+ if(seconds<60)return 'hace '+seconds+' segundos';
+ const min=Math.floor(seconds/60);
+ return min===1?'hace 1 minuto':'hace '+min+' minutos';
+}
+function gpsLiveBadge(loc){
+ if(!loc?.updated_at)return '<span class="gps-pill gps-awaiting">Esperando GPS</span>';
+ const age=Date.now()-new Date(loc.updated_at).getTime();
+ if(!Number.isFinite(age)||age>90000)return '<span class="gps-pill gps-delayed">Señal demorada</span>';
+ return '<span class="gps-pill gps-live">GPS reciente</span>';
+}
+function courierGpsCard(){
+ const active=model.orders.some(o=>o.courier_id===model.user?.id&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status));
+ const running=model.gpsWatch!=null;
+ const synced=running&&Boolean(model.gpsLastSentAt);
+ const status=running?(active?(synced?'Último envío GPS '+gpsElapsed(model.gpsLastSentAt):'GPS iniciado. Esperando precisión o conexión.'):
+ 'GPS encendido. Se enviará tu ubicación cuando tengas un domicilio activo.'):
+ 'GPS apagado. La clienta no verá el movimiento hasta que lo actives.';
+ const accuracy=model.courierGps?.accuracy;
+ const warning=Number.isFinite(accuracy)&&accuracy>100?'<div class="gps-warning">La precisión actual es de '+Math.round(accuracy)+' metros. Acércate a una ventana o activa Ubicación precisa para compartir posiciones válidas (máximo 100 m).</div>':'';
+ return '<div class="card courier-gps-card"><div class="inline-between"><div><h3>'+icon('crosshair',18)+' Seguimiento GPS</h3><p>'+e(status)+'</p></div>'+
+ '<span class="gps-pill '+(synced?'gps-live':running?'gps-awaiting':'gps-off')+'">'+(synced?'Compartiendo':running?'Preparado':'Apagado')+'</span></div>'+
+ (model.gpsError?'<div class="gps-warning">'+e(model.gpsError)+'</div>':'')+warning+
+ '<div class="order-actions"><button class="button '+(running?'outline':'primary')+' small" data-act="'+(running?'stopCourierGps':'courierGps')+'">'+icon('crosshair',17)+' '+(running?'Detener GPS':'Activar mi GPS')+'</button>'+
+ (running?'<button class="button tonal small" data-act="courierGps">'+icon('navigation',17)+' Actualizar ubicación</button>':'')+'</div>'+
+ '<p class="field-help">Cuando aceptes un domicilio, la clienta podrá ver tu última ubicación desde su enlace. Debes mantener esta página abierta y dar permiso de ubicación. Si bloqueas el teléfono, el GPS puede dejar de actualizarse.</p></div>';
+}
 
 function modeName(v){return ({routed:'Enrutado',normal:'Normal',urgent:'Urgente'})[v]||'Normal'}
 function orderStatusText(o){return o.status==='pending'&&o.delivery_mode==='routed'&&o.dispatch_after&&Date.parse(o.dispatch_after)>Date.now()?'Programado para la tarde':statusText(o.status)}
@@ -246,9 +279,9 @@ function accountView(){return `<div class="pagehead"><h1>Tu cuenta</h1></div><di
 function storeCard(){const s=model.store;return `<div class="card"><div class="inline-between"><div><span class="badge">${icon('shop',15)} Comercios</span><h2 style="margin-top:10px">${e(s?.name||'Configura tu negocio')}</h2><p>${e(s?.address||'Registra el punto exacto de recogida para que tus clientes te encuentren por nombre.')}</p></div><span style="color:var(--purple)">${icon('shop',32)}</span></div><div class="inline-between" style="margin-top:12px"><span class="badge ${s?.lat!=null?'green':'red'}">${s?.lat!=null?'Ubicación guardada':'Falta ubicación GPS'}</span><button class="button tonal small" data-act="editStore">${icon('settings',15)} Configurar tienda</button></div></div>`}
 function businessHome(){let orders=model.orders.filter(o=>o.source==='business');let active=orders.filter(o=>!['delivered','cancelled'].includes(o.status));return `<div class="pagehead"><div><span class="eyebrow" style="color:var(--purple)">RUTAYA PARA NEGOCIOS</span><h1>Gestión de entregas</h1></div></div>${storeCard()}<div class="stats"><div class="stat"><div class="num">${orders.length}</div><small>Solicitudes</small></div><div class="stat"><div class="num">${active.length}</div><small>En proceso</small></div><div class="stat"><div class="num">${orders.filter(o=>o.status==='delivered').length}</div><small>Entregados</small></div></div>${model.profile?.is_admin?`<div class="card soft"><div class="inline-between"><div><h3>Domiciliarios de RutaYa</h3><p>Invita y aprueba a quienes repartirán tus pedidos.</p></div><a class="button primary small" href="${url('admin/')}">${icon('user',16)} Administrar</a></div></div>`:'' }${inviteShareCard()}<div class="card spaced"><h2>La clienta completa sus datos</h2><p>Crea un enlace y envíalo por WhatsApp. La clienta escribirá su nombre, celular, dirección y punto GPS sin registrarse. El domicilio se solicitará solo cuando ella confirme.</p><button class="button primary wide" data-act="inviteForm">${icon('phone',18)} Crear enlace para la clienta</button></div><div class="card spaced"><h2>Enviar pedido a cliente</h2><p>RutaYa usará el punto de recogida de tu negocio. Registra a quién se entrega, si falta cobrar y la modalidad del domicilio. Luego podrás compartir el seguimiento por WhatsApp.</p><button class="button primary wide" data-act="businessForm">${icon('truck',19)} Solicitar un domiciliario</button></div>${businessInvitations()}<div class="section-title spaced"><h2>Entregas recientes</h2><button class="button ghost small" data-act="nav" data-view="pedidos">Ver todas ${icon('chevron',15)}</button></div>${orders.length?orders.slice(0,3).map(o=>newOrderCard(o,'negocios')).join(''):empty('No hay entregas todavía','Registra tu primer servicio desde el panel del negocio.')}`}
 function businessOrders(){const orders=model.orders.filter(o=>o.source==='business');return `<div class="pagehead"><h1>Pedidos del negocio</h1></div>${orders.length?orders.map(o=>newOrderCard(o,'negocios')).join(''):empty('Sin pedidos todavía','Cuando solicites un domiciliario podrás seguirlo y enviar el enlace por WhatsApp a la clienta.')}<button class="button primary wide" data-act="businessForm">${icon('truck',18)} Nuevo envío</button>`}
-function courierHome(){const orders=model.orders.filter(o=>o.status==='pending').sort((a,b)=>({urgent:0,normal:1,routed:2}[a.delivery_mode||'normal']??1)-({urgent:0,normal:1,routed:2}[b.delivery_mode||'normal']??1)||new Date(a.created_at)-new Date(b.created_at));return `<div class="pagehead"><div><span class="eyebrow" style="color:var(--purple)">RUTAYA REPARTIDOR</span><h1>Servicios disponibles</h1></div></div><div class="card soft"><div class="inline-between"><div><h3 style="margin:0">Ubicación del domiciliario</h3><p style="font-size:12px">${model.courierGps?'GPS activo · Última lectura recibida':'Actívala para verificar recogidas y entregas.'}</p></div><button class="button tonal small" data-act="courierGps">${icon('crosshair',16)} ${model.courierGps?'Actualizar':'Activar GPS'}</button></div></div>${orders.length?orders.map(o=>newOrderCard(o,'repartidores')).join(''):empty('No hay solicitudes pendientes','Los nuevos pedidos que lleguen aparecerán aquí.','clipboard')}<div class="hint">${icon('shield',19)} La confirmación de llegada, recogida y entrega exige GPS dentro de 200 m del punto, con precisión máxima de 100 m. Un navegador no es suficiente para evitar GPS falsificado.</div>`}
-function courierOrders(){const orders=model.orders.filter(o=>o.courier_id&&(o.status!=='delivered'||new Date(o.updated_at).toDateString()===new Date().toDateString()));return `<div class="pagehead"><h1>Mis servicios</h1></div>${orders.length?orders.map(o=>newOrderCard(o,'repartidores')).join(''):empty('Todavía no tienes servicios asignados','Acepta un domicilio disponible para empezar.')}`}
-function courierAccount(){return `<div class="pagehead"><h1>Mi perfil de reparto</h1></div><div class="card"><h3>Seguimiento y GPS</h3><p>Para que un cliente pueda ver tu posición real, debes permitir el GPS y mantener esta página abierta mientras trabajas. Los navegadores pueden detener las actualizaciones al bloquear el teléfono.</p><button class="button primary" data-act="courierGps">${icon('crosshair',17)} Activar seguimiento GPS</button></div>${accountView()}`}
+function courierHome(){const orders=model.orders.filter(o=>o.status==='pending').sort((a,b)=>({urgent:0,normal:1,routed:2}[a.delivery_mode||'normal']??1)-({urgent:0,normal:1,routed:2}[b.delivery_mode||'normal']??1)||new Date(a.created_at)-new Date(b.created_at));return `<div class="pagehead"><div><span class="eyebrow" style="color:var(--purple)">RUTAYA REPARTIDOR</span><h1>Servicios disponibles</h1></div></div>${courierGpsCard()}${orders.length?orders.map(o=>newOrderCard(o,'repartidores')).join(''):empty('No hay solicitudes pendientes','Los nuevos pedidos que lleguen aparecerán aquí.','clipboard')}<div class="hint">${icon('shield',19)} La confirmación de llegada, recogida y entrega exige GPS dentro de 200 m del punto, con precisión máxima de 100 m.</div>`}
+function courierOrders(){const orders=model.orders.filter(o=>o.courier_id===model.user?.id&&(o.status!=='delivered'||new Date(o.updated_at).toDateString()===new Date().toDateString()));return `<div class="pagehead"><h1>Mis servicios</h1></div>${courierGpsCard()}${orders.length?orders.map(o=>newOrderCard(o,'repartidores')).join(''):empty('Todavía no tienes servicios asignados','Acepta un domicilio disponible para empezar.')}`}
+function courierAccount(){return `<div class="pagehead"><h1>Mi perfil de reparto</h1></div>${courierGpsCard()}${accountView()}`}
 
 function adminHome(){
  const delayed=model.orders.filter(stalled);
