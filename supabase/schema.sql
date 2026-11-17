@@ -173,6 +173,7 @@ begin
  -- Bloqueo individual para impedir doble aceptación del pedido.
  select * into v_order from public.orders where id=p_order_id for update;
  if v_order.id is null or v_order.status<>'pending' then raise exception 'El pedido ya no está disponible';end if;
+ if v_order.fee is null then raise exception 'La tarifa debe confirmarse antes de asignar el pedido';end if;
  -- Bloqueo por usuario para impedir carreras sobre límite de 5 en pedidos diferentes.
  perform 1 from public.profiles where user_id=v_id for update;
  select count(*) into v_count from public.orders where courier_id=v_id and status in('accepted','at_pickup','picked_up','at_dropoff');
