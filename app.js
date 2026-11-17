@@ -6,7 +6,7 @@ const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminZones:[],desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminOrderFilter:'active',adminZones:[],desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
 
 function modeName(v){return ({routed:'Enrutado',normal:'Normal',urgent:'Urgente'})[v]||'Normal'}
@@ -241,14 +241,21 @@ function courierAccount(){return `<div class="pagehead"><h1>Mi perfil de reparto
 
 function adminHome(){
  const delayed=model.orders.filter(stalled);
+ const active=model.orders.filter(o=>!['cancelled','delivered'].includes(o.status));
+ const done=model.orders.filter(o=>['cancelled','delivered'].includes(o.status));
+ const shown=model.adminOrderFilter==='all'?model.orders:model.adminOrderFilter==='done'?done:active;
  return '<div class="pagehead"><h1>Panel administrativo</h1></div>'+
  '<div class="stats"><div class="stat"><div class="num">'+model.orders.length+'</div><small>Pedidos</small></div>'+
  '<div class="stat"><div class="num">'+model.orders.filter(o=>o.status==='pending').length+'</div><small>Disponibles</small></div>'+
  '<div class="stat"><div class="num">'+delayed.length+'</div><small>Para revisar</small></div></div>'+
  (delayed.length?'<div class="card notice-card"><h3>'+icon('alert',20)+' Servicios con retraso</h3><p>Hay '+delayed.length+' servicios sin actualización reciente. Revisa cada caso; RutaYa no cancela ni reasigna pedidos automáticamente.</p></div>':'')+
  '<div class="card soft"><div class="inline-between"><div><h2>Domiciliarios</h2><p>Invita y aprueba a quienes pueden trabajar.</p></div><button class="button primary small" data-act="nav" data-view="domiciliarios">Gestionar</button></div></div>'+
- '<div class="section-title spaced"><h2>Todos los pedidos</h2></div>'+
- (model.orders.length?model.orders.map(adminOrderCard).join(''):empty('Sin pedidos','Cuando recibas un domicilio, aparecerá aquí.'))+
+ '<div class="section-title spaced"><h2>Gestionar pedidos</h2></div>'+
+ '<p class="field-help">Aquí puedes cancelar cualquier pedido activo, incluso si el repartidor lo recogió, indicando el motivo.</p>'+
+ '<div class="admin-order-filter"><button class="button small '+(model.adminOrderFilter==='active'?'primary':'outline')+'" data-act="adminFilter" data-filter="active">Activos ('+active.length+')</button>'+
+ '<button class="button small '+(model.adminOrderFilter==='done'?'primary':'outline')+'" data-act="adminFilter" data-filter="done">Finalizados ('+done.length+')</button>'+
+ '<button class="button small '+(model.adminOrderFilter==='all'?'primary':'outline')+'" data-act="adminFilter" data-filter="all">Todos</button></div>'+
+ (shown.length?shown.map(adminOrderCard).join(''):empty('No hay pedidos en esta sección','Selecciona otro filtro para verlos.'))+
  '<p class="field-help">Puedes ajustar una tarifa solo mientras el pedido no haya sido asignado.</p>';
 }
 function adminRates(){
@@ -335,7 +342,7 @@ async function initialize(){try{await data.init();if(page==='confirmar'){
 function draftChange(el){let draft=page==='negocios'?(model.showForm==='invite'?model.inviteDraft:model.businessDraft):model.draft;if(!el.name)return;draft[el.name]=el.name==='paid'?el.value==='true':el.value; if(el.name==='paid'||el.name==='dropoff_zone'||el.name==='delivery_mode')render()}
 root.addEventListener('input',ev=>{let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
 root.addEventListener('change',ev=>{let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
-root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]');if(!b)return;const action=b.dataset.act;const id=b.dataset.id;try{if(action==='nav'){if(data.isLive&&!model.user&&b.dataset.view==='pedidos'){model.auth=true;render();notify('Ingresa para ver tus pedidos.');return}model.view=b.dataset.view;render();window.scrollTo({top:0,behavior:'smooth'})}else if(action==='service'){if(data.isLive&&!model.user){model.auth=true;model.registration=true;render();notify('Regístrate o inicia sesión para pedir un domicilio.');return}model.service=b.dataset.service;model.draft=model.draft||{};model.showForm=true;render()}else if(action==='inviteForm'){
+root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]');if(!b)return;const action=b.dataset.act;const id=b.dataset.id;try{if(action==='adminFilter'){if(page!=='admin'||!isAdmin())throw Error('Acceso no autorizado');const v=b.dataset.filter;if(!['active','done','all'].includes(v))throw Error('Filtro inválido');model.adminOrderFilter=v;render()}else if(action==='nav'){if(data.isLive&&!model.user&&b.dataset.view==='pedidos'){model.auth=true;render();notify('Ingresa para ver tus pedidos.');return}model.view=b.dataset.view;render();window.scrollTo({top:0,behavior:'smooth'})}else if(action==='service'){if(data.isLive&&!model.user){model.auth=true;model.registration=true;render();notify('Regístrate o inicia sesión para pedir un domicilio.');return}model.service=b.dataset.service;model.draft=model.draft||{};model.showForm=true;render()}else if(action==='inviteForm'){
  if(model.store?.lat==null||model.store?.lng==null)throw Error('Registra primero la ubicación de tu negocio.');
  model.inviteDraft={paid:true,delivery_mode:'normal'};
  model.showForm='invite';render();
