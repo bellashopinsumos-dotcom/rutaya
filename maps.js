@@ -16,16 +16,23 @@ function loadLeaflet(){
  if(window.L)return Promise.resolve(window.L);
  if(leafletPromise)return leafletPromise;
  leafletPromise=new Promise((resolve,reject)=>{
-  if(!document.getElementById('rutaya-leaflet-css')){
-   const style=document.createElement('link');
-   style.id='rutaya-leaflet-css';style.rel='stylesheet';
-   style.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
-   document.head.append(style);
-  }
+  let stylesheet=document.getElementById('rutaya-leaflet-css');
+  const cssReady=new Promise(done=>{
+   if(stylesheet&&stylesheet.dataset.ready==='yes'){done();return}
+   if(!stylesheet){
+    stylesheet=document.createElement('link');
+    stylesheet.id='rutaya-leaflet-css';stylesheet.rel='stylesheet';
+    stylesheet.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+    document.head.append(stylesheet);
+   }
+   stylesheet.addEventListener('load',()=>{stylesheet.dataset.ready='yes';done()},{once:true});
+   stylesheet.addEventListener('error',()=>done(),{once:true});
+   if(stylesheet.sheet){stylesheet.dataset.ready='yes';done()}
+  });
   const script=document.createElement('script');
   script.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
   script.async=true;
-  script.onload=()=>window.L?resolve(window.L):reject(Error('No se pudo iniciar el mapa'));
+  script.onload=()=>{if(!window.L){reject(Error('No se pudo iniciar el mapa'));return}cssReady.then(()=>resolve(window.L))};
   script.onerror=()=>reject(Error('No cargó el mapa. Comprueba tu conexión.'));
   document.head.append(script);
  }).catch(err=>{leafletPromise=null;throw err});
@@ -43,7 +50,7 @@ async function searchPlaces(raw){
  if(wait)await new Promise(ok=>setTimeout(ok,wait));
  lastGeoRequest=Date.now();
  const params=new URLSearchParams({
-  format:'jsonv2',countrycodes:'co',limit:'5',addressdetails:'1',
+  format:'jsonv2',countrycodes:'co',limit:'5',addressdetails:'1',viewbox:'-76.88,2.75,-76.35,2.18',bounded:'0',
   q:query.toLowerCase().includes('popayán')||query.toLowerCase().includes('popayan')?query:query+', Popayán, Cauca, Colombia'
  });
  const controller=new AbortController();
