@@ -44,3 +44,12 @@ El repositorio es público. No agregar contraseñas, service role ni claves secr
 ## Prueba local
 
 Abrir con servidor estático (los módulos JS no funcionan desde `file://`): `python -m http.server 8000`, luego `http://localhost:8000/`. Para GPS real se necesita HTTPS o localhost.
+
+
+## Modalidades y seguimiento (piloto)
+- **Enrutado:** tarifa base de la zona menos $1.000 COP, sin valores negativos. Solicitudes antes de las 12:00 m. (Colombia) quedan disponibles para despacho desde las 2:00 p. m. del mismo día; después del corte, desde las 2:00 p. m. del día siguiente.
+- **Normal:** tarifa base de la zona, sujeto a disponibilidad de domiciliarios.
+- **Urgente:** tarifa base más $1.500 COP. Se prioriza visualmente en el listado del repartidor, pero no garantiza una hora de llegada.
+- **Negocio:** cada solicitud permite abrir el seguimiento del domicilio, copiar el enlace o preparar un mensaje para la clienta en WhatsApp. **La persona del negocio debe pulsar Enviar dentro de WhatsApp:** no hay mensajería automática integrada.
+- **Cliente:** puede abrir el enlace de seguimiento sin cuenta; RutaYa muestra el estado y la última ubicación GPS recibida cuando el repartidor mantiene la app abierta. Se actualiza periódicamente, no es una transmisión en segundo plano garantizada.
+- **Pendiente:** definición real de tarifas por barrio/distancia, programación operativa de rutas agrupadas, aprobación de domiciliarios, notificaciones y GPS fiable en segundo plano. Los montos base por zona son **ejemplos**, no precios comerciales aprobados.
