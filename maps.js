@@ -259,6 +259,7 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
   byId('ry-place-form').addEventListener('submit',event=>{event.preventDefault();findQuery(byId('ry-place-search').value)});
   byId('ry-use-gps').onclick=async()=>{
    const button=byId('ry-use-gps');
+   feedback.classList.remove('ry-gps-error');
    button.disabled=true;button.textContent='Buscando ubicación del celular…';
    feedback.textContent='Consultando el GPS. Permite la ubicación cuando el celular la solicite.';
    try{
