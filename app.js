@@ -285,10 +285,36 @@ function courierCashPage(){
  (model.payouts.length?model.payouts.map(p=>'<div class="inline-between payout-row"><span>'+e(String(p.order_id).slice(0,8))+' · '+e(p.paid_at?'Pagado':'Pendiente')+'</span><b>'+money(p.amount)+'</b></div>').join(''):
  '<p class="field-help">Todavía no hay pagos individuales registrados.</p>')+'</div>';
 }
+function csvCell(value){
+ let text=String(value??'');
+ if(/^[=+\-@\t\r]/.test(text))text="'"+text;
+ return '"'+text.replaceAll('"','""')+'"';
+}
+function exportRecentOrdersCsv(){
+ if(page!=='admin'||!isAdmin())throw Error('Acceso exclusivo de administración');
+ const days=model.statsDays||30;
+ const since=Date.now()-days*24*60*60*1000;
+ const payouts=new Map(model.payouts.map(p=>[p.order_id,p]));
+ const recent=model.orders.filter(o=>Number.isFinite(Date.parse(o.created_at))&&Date.parse(o.created_at)>=since);
+ if(!recent.length)throw Error('No hay pedidos recientes cargados para exportar');
+ const heads=['ID pedido','Fecha creación','Estado','Modalidad','Barrio destino','Tarifa COP','Pago repartidor COP','Liquidado'];
+ const lines=[heads,...recent.map(o=>{
+  const payout=payouts.get(o.id);
+  return [o.id,o.created_at,o.status,o.delivery_mode||'normal',o.dropoff_zone||'',
+   o.fee??'',payout?.amount??'',payout?(payout.paid_at?'Sí':'No'):'Sin definir'];
+ })].map(row=>row.map(csvCell).join(';'));
+ const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+ const link=document.createElement('a'),ref=URL.createObjectURL(blob);
+ link.href=ref;link.download='rutaya-pedidos-'+days+'dias-'+new Date().toISOString().slice(0,10)+'.csv';
+ document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(ref),3000);
+ return recent.length;
+}
 function adminStatsPage(){
  const stats=model.stats||{},days=model.statsDays||30;
  return '<div class="pagehead"><h1>Estadísticas y caja</h1></div>'+
  '<div class="admin-order-filter">'+[7,30,90].map(x=>'<button class="button small '+(days===x?'primary':'outline')+'" data-act="statsRange" data-days="'+x+'">'+x+' días</button>').join('')+'</div>'+
+ '<button class="button outline small" data-act="exportAdminCsv">Exportar pedidos cargados (CSV)</button>'+
+ '<p class="field-help">Incluye solo pedidos del período entre los 120 más recientes cargados. No equivale al historial completo y omite nombres, teléfonos y direcciones.</p>'+
  '<div class="stats"><div class="stat"><div class="num">'+(stats.orders??0)+'</div><small>Pedidos</small></div>'+
  '<div class="stat"><div class="num">'+(stats.delivered??0)+'</div><small>Entregados</small></div>'+
  '<div class="stat"><div class="num">'+(stats.cancelled??0)+'</div><small>Cancelados</small></div></div>'+
@@ -1098,6 +1124,8 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
  if(!isAdmin())throw Error('Solo administración puede resolver reportes');
  if(!confirm('¿Ya revisaste y solucionaste este problema?'))return;
  b.disabled=true;await data.resolveSupportCase(b.dataset.case);await refresh();notify('Reporte marcado como solucionado.');
+}else if(action==='exportAdminCsv'){
+ const count=exportRecentOrdersCsv();notify('Archivo CSV generado con '+count+' pedidos cargados.');
 }else if(action==='statsRange'){
  if(!isAdmin())throw Error('Acceso solo para administración');
  model.statsDays=Number(b.dataset.days);
