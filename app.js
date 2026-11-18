@@ -668,7 +668,19 @@ async function initialize(){try{await data.init();if(page==='confirmar'){
    }
   });
  }model.user=await data.currentUser();model.profile=await data.profile();if(page==='repartidores'&&model.user&&model.profile?.role==='courier'&&model.profile?.approved)model.shareAdminLocation=await data.courierAdminLocationConsent();model.zones=await data.getZones();model.knownStores=await data.getPublicStores();if(page==='negocios'){model.store=await data.getStore();if(model.user&&model.profile?.role==='business')model.invites=await data.listDeliveryInvitations();}if(page==='admin'||page==='cliente'||page==='negocios'||page==='repartidores')model.orders=await data.listOrders(page);if(page==='admin'&&model.user&&(model.profile?.is_admin||model.profile?.role==='admin')){model.couriers=await data.listCouriers();model.verifications=await data.listCourierVerification();model.courierRatings=await data.adminCourierRatings();model.adminZones=await data.getAdminZones()}if(page==='seguimiento'){model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));model.poll=setInterval(async()=>{try{model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));render()}catch(err){console.warn(err)}},8500)}if(data.isLive&&model.user==null&&page!=='seguimiento'&&page!=='cliente')model.auth=true;if(page==='cliente'&&model.passwordRecovery&&model.user)model.auth='password';model.loading=false;render()}catch(err){console.error(err);model.error=err.message;model.loading=false;render()}}
-function draftChange(el){let draft=page==='negocios'?(model.showForm==='invite'?model.inviteDraft:model.businessDraft):model.draft;if(!el.name)return;draft[el.name]=el.name==='paid'?el.value==='true':el.value; if(el.name==='paid'||el.name==='dropoff_zone'||el.name==='delivery_mode')render()}
+function draftChange(el){
+ const draft=page==='negocios'?(model.showForm==='invite'?model.inviteDraft:model.businessDraft):model.draft;
+ if(!el.name)return;
+ draft[el.name]=el.name==='paid'?el.value==='true':el.value;
+ if(page==='confirmar'&&el.name==='dropoff_zone'){
+  const label=document.querySelector('.recipient-fee strong');
+  const note=document.querySelector('.recipient-fee small');
+  if(label)label.textContent=money(data.estimateFee(model.zones,draft.dropoff_zone,model.invitation?.delivery_mode));
+  if(note)note.textContent=zoneEstimateNote(draft.dropoff_zone);
+  return;
+ }
+ if(el.name==='paid'||el.name==='dropoff_zone'||el.name==='delivery_mode')render()
+}
 root.addEventListener('input',ev=>{let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
 root.addEventListener('change',ev=>{let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
 root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]');if(!b)return;const action=b.dataset.act;const id=b.dataset.id;try{if(action==='guestSupport'){
