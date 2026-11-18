@@ -138,18 +138,19 @@ function businessInvitations(){
 }
 function inviteFormContent(){
  const d=model.inviteDraft;
- return '<div class="hint">'+icon('info',18)+' Tú describes el paquete y seleccionas el servicio. La clienta escribirá su nombre, celular y dirección desde el enlace.</div>'+
+ return '<div class="ry-invite-simple">'+
+ '<p class="ry-modal-intro">La clienta escribirá su nombre, celular y dirección. Tú solo debes decir qué vas a enviar.</p>'+
  '<label for="invite-detail">¿Qué vas a entregar?</label>'+
- '<input id="invite-detail" name="items_description" maxlength="1000" placeholder="Ej. Set de esmaltes y lámpara" value="'+e(d.items_description||'')+'">'+
- '<label for="invite-paid">¿El producto ya está pagado?</label>'+
+ '<input id="invite-detail" name="items_description" maxlength="1000" placeholder="Ej. Set de esmaltes" value="'+e(d.items_description||'')+'">'+
+ '<label for="invite-paid">¿Ya pagó el producto?</label>'+
  '<select id="invite-paid" name="paid"><option value="true" '+(d.paid!==false?'selected':'')+'>Sí, ya pagó</option>'+
- '<option value="false" '+(d.paid===false?'selected':'')+'>No, la clienta debe pagar al recibir</option></select>'+
- (d.paid===false?'<label for="invite-amount">Valor pendiente del producto (COP)</label><input id="invite-amount" name="amount_to_collect" type="number" min="1" max="100000000" value="'+e(d.amount_to_collect||'')+'">':'')+
- modeSelector(d)+
- '<p class="field-help">El precio del domicilio se calculará cuando la clienta seleccione su zona. Los Enrutados tienen horario de despacho programado.</p>';
+ '<option value="false" '+(d.paid===false?'selected':'')+'>No, debe pagarlo al recibir</option></select>'+
+ (d.paid===false?'<label for="invite-amount">¿Cuánto falta por pagar?</label>'+
+ '<input id="invite-amount" name="amount_to_collect" type="number" min="1" max="100000000" value="'+e(d.amount_to_collect||'')+'">':'')+
+ '<details class="ry-more-section ry-form-optional" data-persist="business-invite-mode"><summary>¿Es urgente o Enrutado?</summary>'+
+ '<p class="field-help">Si no cambias nada, el domicilio será Normal.</p>'+modeSelector(d)+'</details>'+
+ '<p class="field-help">Después de crear el enlace, pulsa Compartir por WhatsApp. El pedido aparecerá cuando la clienta envíe sus datos.</p></div>';
 }
-
-
 function recipientInvitationPage(){
  const i=model.invitation;
  if(!i)return '<div class="card"><h2>Enlace no encontrado</h2><p>Pídele a la tienda que te envíe un enlace nuevo.</p></div>';
