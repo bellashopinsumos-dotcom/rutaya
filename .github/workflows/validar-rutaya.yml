@@ -1,0 +1,22 @@
+name: Validar RutaYa
+on:
+  pull_request:
+  push:
+    branches:
+      - mejoras-operativas-v32
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Revisar sintaxis de los módulos
+        run: |
+          node --check app.js
+          node --check data.js
+          node --check maps.js
+          node --check icons.js
+      - name: Pruebas de funciones y enlaces
+        run: node tests/validar-v32.mjs
