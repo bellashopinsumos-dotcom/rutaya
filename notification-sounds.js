@@ -54,7 +54,7 @@ export function alertText(alert,role='cliente'){
   cancelled:'El domicilio fue cancelado.'
  };
  const label=texts[alert.kind]||'Actualización de domicilio.';
- return alert.count>1?label+' ('+alert.count+' cambios)':' '+label.trim();
+ return alert.count>1?label+' ('+alert.count+' cambios)':label;
 }
 
 // Web Audio: notas originales muy cortas y volumen suave. Sin reproducción continua.
@@ -71,7 +71,6 @@ const PATTERNS={
 
 export function createSoundPlayer(target=globalThis){
  let context=null;
- let pending=false;
  const supported=()=>Boolean(target.AudioContext||target.webkitAudioContext);
  const ready=()=>context?.state==='running';
  function unlock(){
