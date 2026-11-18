@@ -452,3 +452,9 @@
  .ry-barrio-picker{padding:12px}
  .ry-barrio-new,.ry-barrio-list{padding:17px}
 }
+
+/* RutaYa v32: centro de incidencias y navegación administrativa. */
+.ry-incident-card{margin-block:12px}
+.ry-incident-open{border-inline-start:4px solid var(--purple,#683bbd)}
+.ry-incident-category{margin:10px 0 4px;font-size:14px}
+[id^="rutaya-admin-order-"]{scroll-margin-top:115px}
