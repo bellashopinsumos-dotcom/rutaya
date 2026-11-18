@@ -199,3 +199,24 @@ En los enlaces de entrega enviados por WhatsApp (\`/confirmar/?token=...\`) el f
 El selector de ubicación usa primero GPS y mapa con indicaciones cortas. «Buscar por dirección» y «Más opciones» quedan plegados; se mantienen disponibles cuando el GPS no funciona. El GPS no espera la búsqueda de una calle sugerida para devolver el control al usuario. El formulario mantiene un mecanismo para abrir el enlace en el navegador externo si el navegador interno de WhatsApp bloquea permisos.
 
 Las invitaciones existentes y la validación de datos en PostgreSQL se mantienen. No se cambiaron tarifas ni estados de pedidos. Se revisó sintaxis JS, vistas de pasos, permisos GPS simulados y guardado de direcciones en un simulador de interfaz. **Falta prueba presencial en celulares reales con clientas de distintos niveles de experiencia.**
+
+
+## RutaYa v29 — negocio y domiciliario también fáciles de usar
+
+**Motivación:** la pantalla anterior mostraba muchos controles, textos largos y rutas simultáneas, especialmente para personas poco acostumbradas a las aplicaciones de domicilios.
+
+**Negocio**
+- La portada empieza con **dos decisiones grandes**: «Que la clienta ponga su dirección» (enlace por WhatsApp) y «Yo tengo los datos de entrega» (crear directamente).
+- El enlace recién generado destaca «Enviar enlace por WhatsApp» y oculta la URL larga dentro de «Ver el enlace completo».
+- El formulario para crear un domicilio se organiza visualmente en tres secciones: paquete, datos de la persona que recibe y condiciones del envío. Modalidades Urgente/Enrutado, programación y notas adicionales están bajo secciones opcionales.
+- Los pedidos muestran destinatario, dirección, estado y las acciones **Enviar seguimiento por WhatsApp** / **Ver cómo va el domicilio**. Cancelar, copiar enlace e información operativa permanecen en «Detalles y otras opciones».
+- Historial, resumen del negocio, enlaces anteriores y configuración quedan visibles solo cuando se abren sus secciones. Nada se eliminó del backend.
+
+**Domiciliario**
+- Inicio muestra primero «Activar GPS» y los domicilios propios en curso, después los disponibles.
+- Cada servicio destaca **qué hacer ahora** y solo dos acciones principales: navegar al lugar correspondiente y marcar el paso físico real («Ya llegué al negocio», «Ya recogí el pedido», «Ya llegué a la dirección», «Entregar con código»).
+- Rutas secundarias, mapa de destino, liberación y ayuda siguen disponibles en «Otras rutas y opciones».
+- El menú inferior tiene tres opciones: Inicio, Mis entregas y Mi perfil. «Mi caja y ganancias» está en el perfil, junto con el control avanzado de GPS para Administración.
+- Historial de entregas plegado, y los controles de **Más opciones** conservan su estado si ocurre una actualización automática de datos.
+
+**Verificación:** se comprobó sintaxis de JavaScript y representación funcional de la pantalla de negocio, las cuatro transiciones de servicio del domiciliario, opciones secundarias, y todos los campos esenciales del formulario. Sin modificar pedidos ni precios existentes. Falta validación de facilidad de uso con personas reales en celulares Android y iPhone.
