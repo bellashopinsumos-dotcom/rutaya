@@ -1153,7 +1153,7 @@ if(!/^3\d{9}$/.test(phoneDigits)&&!/^573\d{9}$/.test(phoneDigits))
    if(!confirmed)throw Error('Debes confirmar que comprobaste físicamente la etapa o la entrega');
    if(!confirm(target==='delivered'
     ?'¿Confirmas que el paquete SÍ fue recibido? RutaYa marcará este domicilio como ENTREGADO SIN GPS NI CÓDIGO, y guardará tu intervención.'
-    :'¿Confirmas que esta etapa ocurrió realmente? Quedará registrada como una intervención manual de Administración.'))return;
+    :'¿Confirmas que esta etapa ocurrió realmente? Quedará registrada como una intervención manual de Administración.')){b.disabled=false;return}
    await data.adminOverrideOrderStatus(id,target,reason,method,true);
   }
   else if(op==='cancel')await data.cancelOrder(id,reason);
