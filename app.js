@@ -6,7 +6,7 @@ const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,recipientStep:1,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],tariffHistory:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,recipientStep:1,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',supportFilter:'open',adminZones:[],tariffHistory:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
 
 
@@ -209,6 +209,30 @@ function recipientInvitationPage(){
  (step===1?step1:step===2?step2:step3)+'</section>';
 }
 
+const SUPPORT_CATEGORIES=[
+ ['contacto','No responde el destinatario'],
+ ['direccion','Dirección incorrecta'],
+ ['negocio','Negocio cerrado o demorado'],
+ ['paquete','Paquete dañado o incompleto'],
+ ['pago','Problema con el pago'],
+ ['seguridad','Situación de seguridad'],
+ ['otro','Otro problema']
+];
+function supportCategorySelector(id){
+ return '<label for="'+id+'">Selecciona lo que pasó</label>'+
+ '<select id="'+id+'" required><option value="">Elige un tipo de problema</option>'+
+ SUPPORT_CATEGORIES.map(([key,label])=>'<option value="'+e(key)+'">'+e(label)+'</option>').join('')+'</select>';
+}
+function formatSupportReport(key,detail){
+ const category=SUPPORT_CATEGORIES.find(([code])=>code===key);
+ if(!category)throw Error('Selecciona el tipo de problema');
+ if(detail.trim().length<10)throw Error('Describe qué ocurrió en al menos diez caracteres');
+ return '['+category[1]+'] '+detail.trim();
+}
+function supportCategory(message){
+ const match=String(message||'').match(/^\[([^\]]{2,90})\]\s*/);
+ return match?{label:match[1],detail:String(message).slice(match[0].length)}:{label:'Sin clasificar',detail:String(message||'')};
+}
 function orderSupportButton(o,role){
  if(!model.user||role==='admin')return '';
  if(role==='repartidores'&&o.courier_id!==model.user.id)return '';
@@ -218,9 +242,12 @@ function supportOrderModal(){
  const o=model.orders.find(p=>p.id===model.supportOrderId);
  if(!o)return '';
  return modal('Reportar problema del domicilio',
- '<p>Cuenta qué ocurrió. Administración revisará el caso; si es una urgencia de seguridad, contacta directamente los servicios de emergencia.</p>'+
+ '<p>Elige qué ocurrió y cuéntanos brevemente. Administración recibirá el reporte.</p>'+
+ '<p class="field-help">Ante un peligro inmediato, contacta emergencias: este reporte no las reemplaza.</p>'+
  '<p class="field-help">'+e(o.items_description)+'</p>'+
- '<label for="support-message">Describe el problema</label><textarea id="support-message" rows="4" maxlength="800" placeholder="Ej. La dirección no coincide o no puedo contactar al destinatario."></textarea>',
+ supportCategorySelector('support-category')+
+ '<label for="support-message">Describe el problema</label>'+
+ '<textarea id="support-message" rows="4" maxlength="700" placeholder="Ej. Llamé dos veces y no responden."></textarea>',
  '<button class="button outline" data-act="closeSupport">Volver</button>'+
  '<button class="button primary" data-act="submitSupport">Enviar reporte</button>');
 }
@@ -376,9 +403,10 @@ function routeGroupModal(){
 
 function guestSupportModal(){
  return modal('Avisar de un problema',
- '<p>Describe qué está pasando con tu domicilio. RutaYa enviará el reporte a Administración.</p>'+
+ '<p>Selecciona qué pasa con tu domicilio. El reporte llegará a Administración.</p>'+
+ supportCategorySelector('guest-support-category')+
  '<label for="guest-support-message">¿Qué ocurrió?</label>'+
- '<textarea id="guest-support-message" rows="4" maxlength="800" placeholder="Ej. El repartidor no encuentra la dirección."></textarea>',
+ '<textarea id="guest-support-message" rows="4" maxlength="700" placeholder="Ej. La dirección no es la correcta."></textarea>',
  '<button class="button outline" data-act="closeGuestSupport">Volver</button>'+
  '<button class="button primary" data-act="submitGuestSupport">Enviar reporte</button>');
 }
@@ -1000,8 +1028,7 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
 }else if(action==='submitGuestSupport'){
  if(page!=='seguimiento')throw Error('Acceso incorrecto');
  const token=new URLSearchParams(location.search).get('token');
- const message=document.getElementById('guest-support-message')?.value.trim()||'';
- if(message.length<10)throw Error('Escribe al menos diez caracteres');
+ const message=formatSupportReport(document.getElementById('guest-support-category')?.value,document.getElementById('guest-support-message')?.value||'');
  b.disabled=true;await data.openGuestSupport(token,message);
  model.guestSupport=false;render();notify('Reporte enviado a Administración.');
 }else if(action==='submitRating'){
@@ -1036,8 +1063,7 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
 }else if(action==='closeSupport'){
  model.supportOrderId=null;render();
 }else if(action==='submitSupport'){
- const id=model.supportOrderId,content=document.getElementById('support-message')?.value.trim()||'';
- if(content.length<10)throw Error('Explica qué ocurre en al menos diez caracteres');
+ const id=model.supportOrderId,content=formatSupportReport(document.getElementById('support-category')?.value,document.getElementById('support-message')?.value||'');
  b.disabled=true;await data.openSupportCase(id,content);
  model.supportOrderId=null;render();notify('Tu reporte se envió a Administración.');
 }else if(action==='resolveSupport'){
