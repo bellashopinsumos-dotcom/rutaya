@@ -5,7 +5,7 @@ export function uiScope(state){
   state.page,state.view,state.recipientStep,state.showForm,state.auth,state.registration,
   state.manageAction,state.manageOrderId,state.supportOrderId,state.deliveryOtpOrderId,
   state.guestSupport,state.routeGroupIndex,state.adminOrderFilter,state.supportFilter,
-  state.trackStatus,state.loading,state.error
+  state.trackStatus,state.loading,state.error,state.user,state.statsDays,state.invitationStatus
  ]);
 }
 const selector='input,textarea,select';
