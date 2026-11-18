@@ -921,7 +921,17 @@ function draftChange(el){
  }
  if(el.name==='paid'||el.name==='dropoff_zone'||el.name==='delivery_mode')render()
 }
-root.addEventListener('input',ev=>{let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
+root.addEventListener('input',ev=>{
+ const input=ev.target;
+ if(input.id==='admin-barrio-search'){
+  const needle=input.value.trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  for(const item of root.querySelectorAll('.ry-barrio-item')){
+   const name=(item.dataset.barrioName||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+   item.hidden=!name.includes(needle);
+  }
+  return;
+ }
+ let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
 root.addEventListener('change',ev=>{let t=ev.target;if(t.matches('.modal [name],.recipient-form [name]'))draftChange(t)});
 root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]');if(!b)return;const action=b.dataset.act;const id=b.dataset.id;try{if(action==='guestSupport'){
  if(page!=='seguimiento')throw Error('Acceso incorrecto');
@@ -1200,7 +1210,32 @@ if(!/^3\d{9}$/.test(phoneDigits)&&!/^573\d{9}$/.test(phoneDigits))
   await refresh();
   notify(op==='adminDeliver'?'Entrega marcada como confirmada manualmente por Administración.':op==='adminAdvance'?'Etapa actualizada y auditada desde Administración.':op==='cancel'?'Pedido cancelado.':op==='release'?'Servicio liberado para otro domiciliario.':op==='assign'?'Domiciliario asignado o cambiado.':op==='adminRelease'?'Pedido liberado y disponible para otra asignación.':'Pedido devuelto a disponibles.');
  }finally{model.sending=false}
-}else if(action==='setFee'){const raw=document.getElementById('fee-'+id).value;if(raw===''||+raw<0)throw Error('Escribe una tarifa válida.');await data.setOrderFee(id,Math.round(+raw));await refresh();notify('Tarifa actualizada.')}else if(action==='addZone'){
+}else if(action==='setFee'){const raw=document.getElementById('fee-'+id).value;if(raw===''||+raw<0)throw Error('Escribe una tarifa válida.');await data.setOrderFee(id,Math.round(+raw));await refresh();notify('Tarifa actualizada.')}else if(action==='addBarrio'||action==='saveBarrio'){
+ if(!isAdmin()||page!=='admin')throw Error('Solo Administración puede editar barrios');
+ const isNew=action==='addBarrio';
+ const index=Number(b.dataset.index);
+ const barrios=(model.adminZones||[]).filter(z=>z.kind==='barrio');
+ const barrio=isNew?null:barrios[index];
+ if(!isNew&&!barrio)throw Error('No se encontró el barrio. Actualiza Administración.');
+ const name=isNew?document.getElementById('new-barrio-name')?.value.trim():barrio.name;
+ const value=document.getElementById(isNew?'new-barrio-fee':'barrio-fee-'+index)?.value;
+ const active=document.getElementById(isNew?'new-barrio-active':'barrio-active-'+index)?.checked===true;
+ const fee=Number(value);
+ if(!name||name.length<2||name.length>80)throw Error('Escribe el nombre del barrio (2 a 80 caracteres)');
+ if(value==null||value===''||!Number.isInteger(fee)||fee<0||fee>100000)
+  throw Error('Escribe una tarifa válida entre $0 y $100.000');
+ if(!isNew&&Number(barrio.fee)===fee&&barrio.active===active){notify('No hay cambios pendientes para este barrio.');return}
+ const message=isNew?'¿Crear el barrio '+name+' con tarifa base de '+money(fee)+'?':
+ '¿Guardar '+name+' con tarifa base de '+money(fee)+' y '+(active?'activo':'desactivado')+'?';
+ if(!confirm(message+' Este cambio aplica a domicilios nuevos.'))return;
+ b.disabled=true;
+ await data.saveBarrio(name,fee,active);
+ model.adminZones=await data.getAdminZones();
+ model.zones=await data.getZones();
+ model.tariffHistory=await data.adminTariffHistory();
+ render();
+ notify(isNew?'Barrio creado con su tarifa.':'Tarifa y disponibilidad actualizadas.');
+}else if(action==='addZone'){
  if(!isAdmin())throw Error('Solo administración puede agregar zonas');
  model.adminZones.push({name:'',fee:0,active:true,is_example:true});
  render();
