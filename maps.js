@@ -148,21 +148,34 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
   const shade=document.createElement('div');
   shade.className='modal-back rutaya-location-overlay';
   shade.innerHTML='<section class="modal rutaya-location-modal" role="dialog" aria-modal="true" aria-label="'+escapeHTML(title)+'">'+
-   '<div class="modal-head"><div><h2>'+icon('pin',22)+' '+escapeHTML(title)+'</h2><small>Escribe tu dirección o usa tu ubicación actual.</small></div><button class="iconbtn" type="button" data-close aria-label="Cerrar">'+icon('close',20)+'</button></div>'+
+   '<div class="modal-head"><div><h2>'+icon('pin',22)+' ¿Dónde queda tu casa?</h2><small>Solo necesitas marcar el lugar y escribir la dirección.</small></div>'+
+   '<button class="iconbtn" type="button" data-close aria-label="Cerrar">'+icon('close',20)+'</button></div>'+
    '<div class="modal-body">'+
-    '<button id="ry-use-gps" type="button" class="button primary wide ry-gps-first">'+icon('crosshair',18)+' Usar mi ubicación actual</button>'+ '<div id="ry-recent-places"></div>'+ '<div class="ry-or">o escribe la dirección de entrega</div>'+ '<label for="ry-place-search" class="map-label">Dirección, barrio o negocio</label>'+
-    '<form id="ry-place-form" class="search-place"><input id="ry-place-search" autocomplete="off" placeholder="Ej. Carrera 6 # 8-25, Popayán"><button class="button primary" type="submit">'+icon('search',17)+' Buscar</button></form>'+
-    '<div id="ry-place-results" aria-live="polite"></div>'+
-    '<button type="button" id="ry-show-map" class="button outline wide ry-map-toggle">'+icon('pin',17)+' ¿No aparece tu dirección? Marcar en el mapa</button>'+ '<div id="ry-map-section" class="hide"><div class="map-steps"><b>Toca el punto donde deben llegar</b><small>Mueve el mapa y toca la casa o arrastra el marcador.</small></div>'+
+    '<div class="ry-location-step">1. Elige el lugar de entrega</div>'+
+    '<button id="ry-use-gps" type="button" class="button primary wide ry-gps-first">'+icon('crosshair',18)+' Usar ubicación de mi celular</button>'+
+    '<button type="button" id="ry-show-map" class="button outline wide ry-map-toggle">'+icon('pin',17)+' Marcar mi casa en el mapa</button>'+
+    '<div id="ry-picker-feedback" role="status" aria-live="polite" class="field-help ry-picker-feedback">'+
+    (selected?'Ya tienes un punto guardado. Puedes cambiarlo o revisar la dirección.':'Elige una de las dos opciones de arriba.')+'</div>'+
+    '<div id="ry-recent-places"></div>'+
+    '<div id="ry-map-section" class="hide"><div class="map-steps"><b>Toca el mapa donde está tu casa</b>'+
+    '<small>Puedes mover el mapa y arrastrar el marcador hasta el lugar correcto.</small></div>'+
     '<div id="ry-picker-map" class="placemap ry-picker-map"><div class="ry-map-loading">'+icon('route',26)+' Cargando mapa de Popayán…</div></div>'+
     '<div class="ry-map-toolbar"><span id="ry-position-label" class="ry-position-label"></span></div></div>'+
-    '<label for="ry-place-address" class="map-label">Dirección completa y referencia para el domiciliario</label>'+
+    '<details id="ry-location-search" class="ry-location-search"><summary>¿Prefieres buscar por dirección?</summary>'+
+    '<label for="ry-place-search" class="map-label">Escribe una calle, barrio o negocio</label>'+
+    '<form id="ry-place-form" class="search-place"><input id="ry-place-search" autocomplete="off" placeholder="Ej. Carrera 6 # 8-25, Popayán">'+
+    '<button class="button primary" type="submit">'+icon('search',17)+' Buscar</button></form>'+
+    '<div id="ry-place-results" aria-live="polite"></div></details>'+
+    '<div class="ry-location-step">2. Escribe tu dirección</div>'+
+    '<label for="ry-place-address" class="map-label">Calle, número de casa o referencia</label>'+
     '<input id="ry-place-address" placeholder="Ej. Carrera 6 # 10-25, portón azul" autocomplete="street-address" value="'+escapeHTML(selected?.address||'')+'">'+
-    '<p class="field-help">El GPS marca el punto, pero necesitas revisar la calle y el número de tu casa. Para sugerir una dirección se consulta OpenStreetMap; puedes corregirla o escribirla manualmente.</p>'+
-    '<details class="ry-advanced"><summary>Opciones avanzadas (no necesarias)</summary><div class="ry-advanced-inner"><input id="ry-place-coords" placeholder="Latitud, longitud o enlace con coordenadas"><button id="ry-use-coords" type="button" class="button outline small">Marcar ese punto</button></div><small>Los enlaces cortos de Google Maps no siempre incluyen coordenadas. Puedes marcar el lugar directamente en el mapa.</small></details>'+
-    '<div id="ry-picker-feedback" class="field-help ry-picker-feedback">'+(selected?'Punto seleccionado. Comprueba la dirección.':'Escribe una dirección y pulsa Buscar, o usa tu ubicación actual.')+'</div>'+
+    '<p class="field-help">Revisa que la dirección coincida con el punto marcado. Si el GPS propone otra calle, puedes corregirla.</p>'+
+    '<details class="ry-advanced"><summary>Más opciones (opcional)</summary><div class="ry-advanced-inner">'+
+    '<input id="ry-place-coords" placeholder="Coordenadas o enlace de Google Maps">'+
+    '<button id="ry-use-coords" type="button" class="button outline small">Usar coordenadas</button></div></details>'+
    '</div>'+
-   '<div class="modal-foot"><button class="button outline" data-close type="button">Cancelar</button><button id="ry-save-point" type="button" class="button primary">'+icon('check',17)+' Confirmar dirección</button></div>'+
+   '<div class="modal-foot"><button class="button outline" data-close type="button">Volver</button>'+
+   '<button id="ry-save-point" type="button" class="button primary">'+icon('check',17)+' Guardar mi dirección</button></div>'+
   '</section>';
   document.body.append(shade);
   const previousOverflow=document.body.style.overflow;
@@ -278,13 +291,13 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
      if(suggestion&&selected?.lat===point.lat&&selected?.lng===point.lng&&!addressInput.value.trim()){
       addressInput.value=suggestion;
       updateSaveState();
-      feedback.textContent='GPS localizado. Sugerimos una dirección cercana con OpenStreetMap. Revisa el número de tu casa y pulsa Confirmar dirección.';
+      feedback.textContent='¡Ubicación marcada! Revisa tu dirección y pulsa Guardar mi dirección.';
      }else if(!addressInput.value.trim()){
       feedback.textContent='GPS localizado. Escribe tu calle, número de casa o una referencia para que el domiciliario pueda encontrarte.';
       addressInput.focus({preventScroll:true});
      }
     }else{
-     feedback.textContent='GPS localizado. Revisa que la dirección que escribiste corresponda al punto y pulsa Confirmar dirección.';
+     feedback.textContent='¡Ubicación marcada! Revisa que la dirección coincida y pulsa Guardar mi dirección.';
     }
    }catch(err){
     if(!closed){
@@ -293,7 +306,7 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
      byId('ry-show-map').scrollIntoView({block:'nearest',behavior:'smooth'});
     }
    }finally{
-    button.disabled=false;button.innerHTML=icon('crosshair',18)+' Usar mi ubicación actual';
+    button.disabled=false;button.innerHTML=icon('crosshair',18)+' Usar ubicación de mi celular';
    }
   };
   byId('ry-use-coords').onclick=()=>{
