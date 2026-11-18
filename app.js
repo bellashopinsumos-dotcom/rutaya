@@ -737,12 +737,15 @@ function adminHome(){
  const delayed=model.orders.filter(stalled);
  const active=model.orders.filter(o=>!['cancelled','delivered'].includes(o.status));
  const done=model.orders.filter(o=>['cancelled','delivered'].includes(o.status));
- const shown=model.adminOrderFilter==='all'?model.orders:model.adminOrderFilter==='done'?done:active;
+ const shown=model.adminOrderFilter==='all'?model.orders:model.adminOrderFilter==='done'?done:model.adminOrderFilter==='delayed'?delayed:active;
+ const openReports=(model.supportCases||[]).filter(c=>c.status==='open').length;
  return '<div class="pagehead"><h1>Panel administrativo</h1></div>'+
  '<div class="stats"><div class="stat"><div class="num">'+model.orders.length+'</div><small>Pedidos</small></div>'+
  '<div class="stat"><div class="num">'+model.orders.filter(o=>o.status==='pending').length+'</div><small>Disponibles</small></div>'+
- '<div class="stat"><div class="num">'+delayed.length+'</div><small>Para revisar</small></div></div>'+
+ '<div class="stat"><div class="num">'+delayed.length+'</div><small>Demorados</small></div>'+
+ '<div class="stat"><div class="num">'+openReports+'</div><small>Reportes abiertos</small></div></div>'+
  (delayed.length?'<div class="card notice-card"><h3>'+icon('alert',20)+' Servicios con retraso</h3><p>Hay '+delayed.length+' servicios sin actualización reciente. Revisa cada caso; RutaYa no cancela ni reasigna pedidos automáticamente.</p></div>':'')+
+ (openReports?'<div class="card notice-card"><h3>'+icon('alert',20)+' '+openReports+' problemas pendientes</h3><p>Hay novedades de clientes, negocios o repartidores que deben revisarse.</p><button class="button primary small" data-act="nav" data-view="soporte">Revisar reportes</button></div>':'')+
  '<div class="ops-shortcuts"><button class="button outline small" data-act="nav" data-view="mapa">'+icon('pin',16)+' Ver mapa</button>'+
  '<button class="button outline small" data-act="nav" data-view="reportes">'+icon('card',16)+' Estadísticas y pagos</button>'+
  '<button class="button outline small" data-act="nav" data-view="soporte">'+icon('alert',16)+' Reportes y ayuda</button>'+
@@ -751,6 +754,7 @@ function adminHome(){
  '<div class="section-title spaced"><h2>Gestionar pedidos</h2></div>'+
  '<p class="field-help">Si el GPS o el celular del repartidor falla, usa «Confirmar que ya se entregó» después de verificarlo. Los cambios quedan registrados.</p>'+
  '<div class="admin-order-filter"><button class="button small '+(model.adminOrderFilter==='active'?'primary':'outline')+'" data-act="adminFilter" data-filter="active">Activos ('+active.length+')</button>'+
+ '<button class="button small '+(model.adminOrderFilter==='delayed'?'primary':'outline')+'" data-act="adminFilter" data-filter="delayed">Demorados ('+delayed.length+')</button>'+
  '<button class="button small '+(model.adminOrderFilter==='done'?'primary':'outline')+'" data-act="adminFilter" data-filter="done">Finalizados ('+done.length+')</button>'+
  '<button class="button small '+(model.adminOrderFilter==='all'?'primary':'outline')+'" data-act="adminFilter" data-filter="all">Todos</button></div>'+
  (shown.length?shown.map(adminOrderCard).join(''):empty('No hay pedidos en esta sección','Selecciona otro filtro para verlos.'))+
