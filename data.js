@@ -161,6 +161,18 @@ export async function adminForceAssignOrder(id,courierId,reason,packageTransferr
  if(error)throw error;
  return data;
 }
+export async function adminOverrideOrderStatus(orderId,newStatus,reason,verificationMethod,confirmed){
+ if(!isLive)throw Error('Las correcciones administrativas necesitan conexión a RutaYa');
+ const {data,error}=await api.rpc('admin_override_rutaya_order_status',{
+  p_order_id:orderId,
+  p_new_status:newStatus,
+  p_reason:reason,
+  p_verification_method:verificationMethod,
+  p_confirmed:confirmed===true
+ });
+ if(error)throw error;
+ return data;
+}
 export async function adminOrderHistory(id){
  if(!isLive)return [];
  const {data,error}=await api.rpc('admin_rutaya_order_history',{p_order_id:id});
