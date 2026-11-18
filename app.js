@@ -167,7 +167,9 @@ function recipientInvitationPage(){
  '<input id="invite-recipient-name" name="recipient_name" autocomplete="name" maxlength="180" placeholder="Nombre y apellido" value="'+e(d.recipient_name||'')+'">'+
  '<label for="invite-recipient-phone">Celular de contacto</label>'+
  '<input id="invite-recipient-phone" type="tel" name="recipient_phone" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="3XXXXXXXXX" value="'+e(d.recipient_phone||'')+'">'+
- pickerButton('dropoff','Ubicación donde quieres recibir',d)+
+ pickerButton('dropoff','Ubicación exacta donde recibirás tu pedido',d)+
+ '<div class="recipient-gps-instructions">'+icon('crosshair',18)+' <span>Pulsa <b>Elegir ubicación</b> y luego <b>Usar mi ubicación actual</b>. Si tu celular no permite GPS, busca tu dirección o marca la casa en el mapa.</span></div>'+
+ '<p class="field-help">Si abriste este enlace dentro de WhatsApp y no aparece el permiso de ubicación, usa el menú de WhatsApp para <b>Abrir en Chrome o Safari</b>. Puedes <button type="button" class="recipient-copy-link" data-act="copyRecipientLink">copiar este enlace</button> y pegarlo en tu navegador.</p>'+
  '<label for="invite-dropoff-zone">¿En qué zona o sector de Popayán estás?</label>'+
  '<select id="invite-dropoff-zone" name="dropoff_zone"><option value="">Selecciona tu zona</option>'+options+'</select>'+
  '<div class="location-card space"><div class="inline-between"><span>Costo del domicilio</span><strong class="big-price">'+money(data.estimateFee(model.zones,d.dropoff_zone,i.delivery_mode))+'</strong></div>'+
@@ -780,6 +782,11 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
  b.disabled=true;await data.revokeDeliveryInvitation(token);
  if(model.inviteShareUrl===deliveryInviteUrl(token))model.inviteShareUrl=null;
  await refresh();notify('Enlace desactivado.');
+}else if(action==='copyRecipientLink'){
+ if(page!=='confirmar')throw Error('Este botón solo funciona en el formulario de entrega');
+ const link=location.href;
+ try{await navigator.clipboard.writeText(link);notify('Enlace copiado. Abre Chrome o Safari y pégalo para usar GPS.')}
+ catch{prompt('Copia este enlace para abrirlo en Chrome o Safari:',link)}
 }else if(action==='completeInvite'){
  if(model.sending)return;
  if(page!=='confirmar'||model.invitation?.status!=='pending')throw Error('El enlace ya no está disponible.');
