@@ -174,3 +174,16 @@ Si el paquete está en estado **recogido** o **en destino**, liberar solo es pos
 - Administración puede usar **Copiar instrucciones para repartidores** para enviar la guía por WhatsApp. No puede encender a distancia el GPS ni anular el permiso del repartidor.
 - **Seguridad:** el servidor valida rol aprobado para activar/desactivar, y rol administrador para consultar flota. La función nueva \`admin_fleet_status_v26()\` evita cambiar el tipo de retorno de la función anterior. La base de inventario de Bella Shop no se modifica.
 - Archivo de migración: \`supabase/mapa-flota-v26.sql\`, ejecutado en Supabase RutaYa. La verificación de backend comprobó que Administración recupera el repartidor disponible sin geolocalización y que invitados sin sesión no pueden obtener el mapa ni cambiar permisos.
+
+
+## RutaYa v27 — Corrección del GPS en enlace de destinatarias
+
+El selector de ubicación del enlace \`/confirmar/?token=...\` ahora:
+- Solicita GPS con mensaje de espera y permite un segundo intento de precisión aproximada si el GPS preciso se demora (sin rebajar las exigencias de precisión del repartidor).
+- **Conserva la dirección que ya fue escrita**: anteriormente el GPS la vaciaba y el botón de confirmar quedaba bloqueado, dando la impresión de que no había ocurrido nada.
+- Muestra el punto seleccionado y la precisión reportada; sugiere una dirección con una consulta puntual a OpenStreetMap/Nominatim si aún no se escribió ninguna. La clienta debe revisar la calle, número y referencias, pues el GPS solo identifica coordenadas.
+- Permite seguir manualmente aunque no se pueda usar la búsqueda externa o la sugerencia de calle. En el móvil resalta y desplaza al campo de dirección para completar y confirmar.
+- Muestra errores claros por permiso denegado, dispositivo sin GPS, sitio sin HTTPS, GPS lento y fallos de señal. Recomienda abrir el enlace en Chrome o Safari si el navegador interno de WhatsApp restringe permisos, y ofrece **Copiar enlace**.
+- Mantiene la alternativa «Marcar en el mapa» y no modifica pedidos ni invitaciones existentes.
+
+**Pruebas realizadas:** se verificó sintaxis de módulos; simulación funcional del selector con GPS concedido, sugerencia de calle, coordenadas guardadas y confirmación habilitada; simulación de permiso denegado y estado sin coordenadas. La disponibilidad real de permisos de WhatsApp/iOS/Android debe comprobarse en el dispositivo de la clienta. El geocodificador público de OpenStreetMap no es adecuado como dependencia comercial sin confirmar sus límites y condiciones de uso.
