@@ -27,6 +27,7 @@ assert.match(app,/data-act="supportFilter"/);
 assert.match(app,/data-act="supportToOrder"/);
 assert.match(app,/data-act="exportAdminCsv"/);
 assert.match(app,/adminOrderFilter==='delayed'/);
+assert.match(app,/\['active','delayed','done','all'\]\.includes\(v\)/);
 for(const p of ['index.html','admin/index.html','negocios/index.html','repartidores/index.html','seguimiento/index.html','confirmar/index.html']){
  const html=readFileSync(join(base,p),'utf8');
  assert.match(html,/app\.js\?v=32/,'Versión nueva de '+p);
