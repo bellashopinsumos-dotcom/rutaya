@@ -18,7 +18,27 @@ export function trackingRouteUrl(origin,destination){
 export function mapsSearchUrl(query){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query||'Popayán, Colombia')}
 export function googleEmbed(center){if(!center||center.lat==null||center.lng==null)return null;return 'https://www.google.com/maps?q='+encodeURIComponent(center.lat+','+center.lng)+'&z=15&output=embed'}
 export function parseCoordinate(value){const v=String(value||'').trim();let m=v.match(/^\s*(-?\d{1,2}\.\d+)\s*[,; ]\s*(-?\d{1,3}\.\d+)\s*$/);if(!m)m=v.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/);if(!m)m=v.match(/[?&](?:q|ll)=(-?\d+\.\d+)%?2[Cc](-?\d+\.\d+)/);if(!m)m=v.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);if(!m)return null;const lat=+m[1],lng=+m[2];return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null}
-export async function gps(){if(!navigator.geolocation)throw Error('El dispositivo no tiene acceso a GPS.');return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),()=>reject(new Error('No se pudo obtener tu ubicación. Revisa los permisos del GPS y utiliza HTTPS.')),{enableHighAccuracy:true,maximumAge:0,timeout:15000}));}
+export async function gps({allowApproximate=false}={}){
+ if(typeof isSecureContext==='boolean'&&!isSecureContext)throw Error('Para usar GPS abre RutaYa en una página HTTPS (Chrome o Safari).');
+ if(!navigator.geolocation)throw Error('Este navegador no permite solicitar ubicación. Abre el enlace en Chrome o Safari, o marca tu casa en el mapa.');
+ const locate=options=>new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(
+  pos=>{
+   const point={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy};
+   if(!Number.isFinite(point.lat)||!Number.isFinite(point.lng))reject(Error('El teléfono no entregó coordenadas válidas.'));
+   else resolve(point);
+  },reject,options));
+ try{
+  return await locate({enableHighAccuracy:true,maximumAge:0,timeout:18000});
+ }catch(firstError){
+  if(firstError?.code===1)throw Error('La ubicación está bloqueada. En ajustes del celular permite la ubicación a este navegador. Si abriste el enlace dentro de WhatsApp, usa su menú para abrirlo en Chrome o Safari; también puedes marcar tu casa en el mapa.');
+  if(allowApproximate){
+   try{return await locate({enableHighAccuracy:false,maximumAge:60000,timeout:10000})}
+   catch(secondError){if(secondError?.code===1)throw Error('No autorizaste la ubicación. Puedes marcar tu dirección manualmente en el mapa.')}
+  }
+  if(firstError?.code===3)throw Error('Tu celular tardó demasiado en obtener GPS. Activa la ubicación del teléfono, intenta en un lugar abierto o marca tu casa en el mapa.');
+  throw Error('No fue posible obtener el GPS. Revisa que la ubicación del teléfono esté encendida y que el navegador tenga permiso. También puedes tocar «Marcar en el mapa».');
+ }
+}
 
 let leafletPromise=null;
 function loadLeaflet(){
@@ -76,6 +96,27 @@ async function searchPlaces(raw){
   return results;
  }finally{clearTimeout(timer)}
 }
+async function reverseAddressSuggestion(point){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),9000);
+ try{
+  // Una consulta por selección GPS. Si el proveedor falla, se permite dirección manual.
+  const params=new URLSearchParams({format:'jsonv2',lat:String(point.lat),lon:String(point.lng),zoom:'18',addressdetails:'1','accept-language':'es'});
+  const response=await fetch('https://nominatim.openstreetmap.org/reverse?'+params.toString(),{
+   headers:{'Accept-Language':'es'},signal:controller.signal
+  });
+  if(!response.ok)return '';
+  const place=await response.json();
+  const addr=place.address||{};
+  const street=addr.road||addr.pedestrian||addr.residential||addr.path||'';
+  const number=addr.house_number||'';
+  const vicinity=addr.neighbourhood||addr.suburb||addr.quarter||'';
+  const pieces=[street+(number?' '+number:''),vicinity].filter(Boolean);
+  const suggested=pieces.join(', ')||String(place.display_name||'').split(',').slice(0,3).join(',').trim();
+  return suggested.length>3?suggested.slice(0,260):'';
+ }catch{return ''}
+ finally{clearTimeout(timer)}
+}
 function initOpenMap(root,starting,onChoose){
  const L=window.L;
  const center=starting?.lat!=null?starting:(CONFIG.cityCenter||{lat:2.4448,lng:-76.6147});
@@ -117,7 +158,7 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
     '<div class="ry-map-toolbar"><span id="ry-position-label" class="ry-position-label"></span></div></div>'+
     '<label for="ry-place-address" class="map-label">Dirección completa y referencia para el domiciliario</label>'+
     '<input id="ry-place-address" placeholder="Ej. Carrera 6 # 10-25, portón azul" autocomplete="street-address" value="'+escapeHTML(selected?.address||'')+'">'+
-    '<p class="field-help">Ejemplo: Casa 12, segundo piso, rejas negras. Confirma que el punto corresponde a tu dirección.</p>'+
+    '<p class="field-help">El GPS marca el punto, pero necesitas revisar la calle y el número de tu casa. Si sugerimos una dirección, corrígela cuando sea necesario.</p>'+
     '<details class="ry-advanced"><summary>Opciones avanzadas (no necesarias)</summary><div class="ry-advanced-inner"><input id="ry-place-coords" placeholder="Latitud, longitud o enlace con coordenadas"><button id="ry-use-coords" type="button" class="button outline small">Marcar ese punto</button></div><small>Los enlaces cortos de Google Maps no siempre incluyen coordenadas. Puedes marcar el lugar directamente en el mapa.</small></details>'+
     '<div id="ry-picker-feedback" class="field-help ry-picker-feedback">'+(selected?'Punto seleccionado. Comprueba la dirección.':'Escribe una dirección y pulsa Buscar, o usa tu ubicación actual.')+'</div>'+
    '</div>'+
@@ -149,8 +190,8 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
   function updateLocation(point,addr,fromMap=false){
    selected={lat:Number(point.lat),lng:Number(point.lng)};
    if(!Number.isFinite(selected.lat)||!Number.isFinite(selected.lng))return;
-   if(typeof addr==='string')addressInput.value=addr;
-   else if(fromMap)addressInput.value='';
+   if(typeof addr==='string'&&addr.trim())addressInput.value=addr;
+   // No borrar la dirección que la persona ya escribió al corregir el punto GPS.
    mapController?.setWithoutSelect(selected);
    feedback.textContent=fromMap?'Punto marcado. Ahora escribe la dirección o una referencia abajo.':'Punto seleccionado. Verifica la dirección antes de guardar.';
    updateSaveState();
@@ -217,13 +258,42 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
   }
   byId('ry-place-form').addEventListener('submit',event=>{event.preventDefault();findQuery(byId('ry-place-search').value)});
   byId('ry-use-gps').onclick=async()=>{
-   const button=byId('ry-use-gps');button.disabled=true;
+   const button=byId('ry-use-gps');
+   button.disabled=true;button.textContent='Buscando ubicación del celular…';
+   feedback.textContent='Consultando el GPS. Permite la ubicación cuando el celular la solicite.';
    try{
-    const point=await gps();
+    const point=await gps({allowApproximate:true});
     if(closed)return;
-    updateLocation(point,'');
-    feedback.textContent='Marcamos tu ubicación (precisión aprox. '+Math.round(point.accuracy)+' m). Escribe tu dirección para confirmarla.';
-   }catch(err){feedback.textContent=err.message}finally{button.disabled=false}
+    ++requestCount;
+    resultBox.replaceChildren();
+    updateLocation(point);
+    feedback.textContent='GPS encontrado (precisión aprox. '+Math.round(point.accuracy)+' m). Verifica o completa tu dirección en el campo de abajo.';
+    addressInput.classList.add('ry-address-needs-check');
+    addressInput.scrollIntoView({block:'nearest',behavior:'smooth'});
+    // La búsqueda de dirección es solo una sugerencia: jamás impide marcar el punto.
+    if(!addressInput.value.trim()){
+     const suggestion=await reverseAddressSuggestion(point);
+     if(closed)return;
+     if(suggestion&&selected?.lat===point.lat&&selected?.lng===point.lng&&!addressInput.value.trim()){
+      addressInput.value=suggestion;
+      updateSaveState();
+      feedback.textContent='GPS localizado. Sugerimos una dirección cercana con OpenStreetMap. Revisa el número de tu casa y pulsa Confirmar dirección.';
+     }else if(!addressInput.value.trim()){
+      feedback.textContent='GPS localizado. Escribe tu calle, número de casa o una referencia para que el domiciliario pueda encontrarte.';
+      addressInput.focus({preventScroll:true});
+     }
+    }else{
+     feedback.textContent='GPS localizado. Revisa que la dirección que escribiste corresponda al punto y pulsa Confirmar dirección.';
+    }
+   }catch(err){
+    if(!closed){
+     feedback.textContent=err.message;
+     feedback.classList.add('ry-gps-error');
+     byId('ry-show-map').scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
+   }finally{
+    button.disabled=false;button.innerHTML=icon('crosshair',18)+' Usar mi ubicación actual';
+   }
   };
   byId('ry-use-coords').onclick=()=>{
    const coords=parseCoordinate(byId('ry-place-coords').value);
