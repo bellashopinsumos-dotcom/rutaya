@@ -460,7 +460,31 @@ function logo(){return `<a class="logo" href="${url('')}" aria-label="RutaYa ini
 function header(){const heading={cliente:'Tu ciudad en movimiento',negocios:'Panel de negocios',repartidores:'RutaYa Repartidor',seguimiento:'Seguimiento de entrega',admin:'Administración'}[page];return `<header class="topbar"><div class="toprow">${logo()}<div class="top-actions"><div class="city">${icon('pin',15)} Popayán <span class="desktop-link">· Cauca</span></div>${page==='cliente'?`<button class="iconbtn" data-act="nav" data-view="cuenta" title="Mi cuenta">${icon('user')}</button>`:''}${page==='repartidores'?`<button class="iconbtn" data-act="courierGps" title="Activar ubicación">${icon('crosshair')}</button>`:''}</div></div></header>`}
 function footer(){return `<footer class="footer">RutaYa · Hecho para conectar Popayán <div style="margin-top:8px"><a href="${url('')}">Clientes</a><a href="${url('negocios/')}">Negocios</a><a href="${url('repartidores/')}">Domiciliarios</a><a href="${url('admin/')}">Administración</a></div><small>Las tarifas y condiciones deben confirmarse antes de iniciar el servicio.</small></footer>`}
 function bottomNav(){const items=page==='cliente'?[['inicio','home','Inicio'],['pedidos','clipboard','Mis pedidos'],['cuenta','user','Cuenta']]:page==='negocios'?[['inicio','home','Panel'],['pedidos','clipboard','Pedidos'],['cuenta','shop','Mi tienda']]:page==='repartidores'?[['inicio','bag','Disponibles'],['pedidos','route','Mis servicios'],['caja','card','Mi caja'],['cuenta','user','Perfil']]:page==='admin'?[['inicio','clipboard','Pedidos'],['mapa','pin','Mapa'],['reportes','card','Caja'],['domiciliarios','user','Equipo'],['cuenta','settings','Ajustes']]:[];return items.length?`<nav class="nav-bottom" aria-label="Navegación principal"><div class="nav-inner">${items.map(([v,i,label])=>`<button data-act="nav" data-view="${v}" class="${model.view===v?'active':''}">${icon(i,21)}${label}</button>`).join('')}</div></nav>`:''}
-function newOrderCard(order,role){let token=order.tracking_token;let active=!['delivered','cancelled'].includes(order.status);let statusClass=order.status==='delivered'?'green':order.status==='cancelled'?'red':'gray';let shop=order.pickup_name||order.shop_name||'Punto de recogida';let me=role==='repartidores';return `<article class="order" data-order="${e(order.id)}"><div class="order-head"><span class="badge ${statusClass}"><span class="status-dot"></span>${e(orderStatusText(order))}</span><small>${prettyTime(order.created_at)}</small></div><h3>${e(serviceName(order.service))}</h3>${modeInfo(order)}<p style="font-size:13px;margin:4px 0">${e(order.items_description)}</p><div class="route-line"><span class="circle">${icon('shop',14)}</span><div class="route-detail"><b>Recoger ${order.pickup_name?'en '+e(order.pickup_name):''}</b><small>${e(order.pickup_address)}</small></div></div><div class="route-line drop"><span class="circle">${icon('pin',15)}</span><div class="route-detail"><b>Entregar</b><small>${e(order.dropoff_address)}</small></div></div><div class="inline-between space"><div><small>Tarifa de domicilio</small><div style="font-size:17px;font-weight:900;color:var(--purple)">${money(order.fee)}</div></div>${order.amount_to_collect>0?`<div><small>Pendiente por producto</small><div style="font-weight:900">${money(order.amount_to_collect)}</div></div>`:''}</div>${stalledNote(order)}<div class="order-actions">${me?courierActions(order):role==='negocios'?businessShareActions(order):`<a class="button tonal small" href="${url('seguimiento/?token='+encodeURIComponent(token))}">${icon('route',17)} Ver seguimiento</a><button class="button outline small" data-act="copyTrack" data-token="${e(token)}">${icon('copy',17)} Compartir</button>`}${orderManageButtons(order,role)}${orderSupportButton(order,role)}</div>${me?courierMapPanel(order):''}${role==='negocios'&&model.businessTrackingToken===token?businessTrackingPanel(order):''}</article>`}
+
+function friendlyBusinessOrderCard(o){
+ const done=['cancelled','delivered'].includes(o.status);
+ const token=e(o.tracking_token||'');
+ return '<article class="card ry-friendly-order" data-order="'+e(o.id)+'">'+
+ '<div class="inline-between"><span class="badge '+(o.status==='delivered'?'green':o.status==='cancelled'?'red':'gray')+'">'+
+ e(orderStatusText(o))+'</span><small>'+e(prettyTime(o.created_at))+'</small></div>'+
+ '<h3>'+e(o.recipient_name||'Entrega a clienta')+'</h3>'+
+ '<p class="ry-friendly-destination">'+icon('pin',16)+' '+e(o.dropoff_address||'Dirección por confirmar')+'</p>'+
+ '<p class="field-help">'+e(o.items_description||'Pedido')+'</p>'+
+ '<div class="ry-primary-order-actions">'+
+ '<a class="button primary" href="'+e(whatsappTrackingUrl(o))+'" target="_blank" rel="noopener noreferrer">'+
+ icon('phone',17)+' Enviar seguimiento por WhatsApp</a>'+
+ (!done?'<button class="button tonal" data-act="trackBusiness" data-token="'+token+'">'+icon('navigation',17)+' Ver cómo va el domicilio</button>':'')+
+ '</div>'+
+ (model.businessTrackingToken===o.tracking_token?businessTrackingPanel(o):'')+
+ '<details class="ry-more-actions" data-persist="business-'+e(o.id)+'"><summary>Detalles y otras opciones</summary>'+
+ '<div class="ry-extra-detail"><p><b>Recoger en:</b> '+e(o.pickup_address||'Negocio')+'</p>'+
+ '<p><b>Modalidad:</b> '+e(modeName(o.delivery_mode||'normal'))+' · <b>Tarifa:</b> '+money(o.fee)+'</p>'+
+ (Number(o.amount_to_collect)>0?'<p><b>Pago del producto pendiente:</b> '+money(o.amount_to_collect)+'</p>':'')+
+ '<div class="order-actions"><button class="button outline small" data-act="copyTrack" data-token="'+token+'">'+icon('copy',15)+' Copiar enlace</button>'+
+ orderManageButtons(o,'negocios')+orderSupportButton(o,'negocios')+'</div></div></details></article>';
+}
+
+function newOrderCard(order,role){if(role==='negocios')return friendlyBusinessOrderCard(order);let token=order.tracking_token;let active=!['delivered','cancelled'].includes(order.status);let statusClass=order.status==='delivered'?'green':order.status==='cancelled'?'red':'gray';let shop=order.pickup_name||order.shop_name||'Punto de recogida';let me=role==='repartidores';return `<article class="order" data-order="${e(order.id)}"><div class="order-head"><span class="badge ${statusClass}"><span class="status-dot"></span>${e(orderStatusText(order))}</span><small>${prettyTime(order.created_at)}</small></div><h3>${e(serviceName(order.service))}</h3>${modeInfo(order)}<p style="font-size:13px;margin:4px 0">${e(order.items_description)}</p><div class="route-line"><span class="circle">${icon('shop',14)}</span><div class="route-detail"><b>Recoger ${order.pickup_name?'en '+e(order.pickup_name):''}</b><small>${e(order.pickup_address)}</small></div></div><div class="route-line drop"><span class="circle">${icon('pin',15)}</span><div class="route-detail"><b>Entregar</b><small>${e(order.dropoff_address)}</small></div></div><div class="inline-between space"><div><small>Tarifa de domicilio</small><div style="font-size:17px;font-weight:900;color:var(--purple)">${money(order.fee)}</div></div>${order.amount_to_collect>0?`<div><small>Pendiente por producto</small><div style="font-weight:900">${money(order.amount_to_collect)}</div></div>`:''}</div>${stalledNote(order)}<div class="order-actions">${me?courierActions(order):role==='negocios'?businessShareActions(order):`<a class="button tonal small" href="${url('seguimiento/?token='+encodeURIComponent(token))}">${icon('route',17)} Ver seguimiento</a><button class="button outline small" data-act="copyTrack" data-token="${e(token)}">${icon('copy',17)} Compartir</button>`}${me?'':orderManageButtons(order,role)+orderSupportButton(order,role)}</div>${me?courierMapPanel(order):''}${role==='negocios'&&model.businessTrackingToken===token?businessTrackingPanel(order):''}</article>`}
 function courierMapPanel(o){
  if(model.courierMapOrderId!==o.id)return '';
  const pickup=model.courierMapStage!=='dropoff';
@@ -474,25 +498,29 @@ function courierMapPanel(o){
 }
 function courierActions(o){
  const pending=o.status==='pending';
- const pickup=pending||o.status==='accepted'||o.status==='at_pickup';
- const done=o.status==='delivered'||o.status==='cancelled';
+ const done=['delivered','cancelled'].includes(o.status);
+ const pickup=['pending','accepted','at_pickup'].includes(o.status);
+ const next={accepted:['at_pickup','Ya llegué al negocio'],at_pickup:['picked_up','Ya recogí el pedido'],
+  picked_up:['at_dropoff','Ya llegué a la dirección'],at_dropoff:['delivered','Entregar con código']}[o.status];
  const pickupPlace={lat:o.pickup_lat,lng:o.pickup_lng,address:o.pickup_address};
  const dropPlace={lat:o.dropoff_lat,lng:o.dropoff_lng,address:o.dropoff_address};
- const link=(place,label,primary)=>'<a class="button '+(primary?'primary':'outline')+' small courier-nav-btn" href="'+e(navigationUrl(place))+'" target="_blank" rel="noopener noreferrer">'+icon('navigation',18)+' '+label+'</a>';
- const preview=(stage,label)=>'<button class="button tonal small" data-act="courierMap" data-id="'+e(o.id)+'" data-stage="'+stage+'">'+icon('pin',17)+' '+label+'</button>';
- let actions=[];
- if(pending)actions.push('<button class="button primary small" data-act="claim" data-id="'+e(o.id)+'">'+icon('check',17)+' Aceptar servicio</button>');
- if(!done){
-  actions.push(link(pickupPlace,'Ruta al punto de recogida',pickup));
-  actions.push(link(dropPlace,'Ruta a la dirección del cliente',!pickup));
-  actions.push(preview(pickup?'pickup':'dropoff','Ver punto en el mapa'));
- }
- if(!pending){
-  const steps={accepted:['at_pickup','Confirmar llegada al local'],at_pickup:['picked_up','Confirmar recogida'],picked_up:['at_dropoff','Confirmar llegada al cliente'],at_dropoff:['delivered','Confirmar entrega']};
-  const step=steps[o.status];
-  if(step)actions.push('<button class="button outline small" data-act="'+(step[0]==='delivered'?'deliveryOtp':'progress')+'" data-id="'+e(o.id)+'" data-next="'+step[0]+'">'+icon('crosshair',17)+' '+(step[0]==='delivered'?'Verificar código y entregar':step[1])+'</button>');
- }
- return actions.join('');
+ const link=(place,label,primary)=>'<a class="button '+(primary?'primary':'outline')+' small courier-nav-btn" href="'+
+  e(navigationUrl(place))+'" target="_blank" rel="noopener noreferrer">'+icon('navigation',18)+' '+label+'</a>';
+ const preview=(stage)=>'<button class="button outline small" data-act="courierMap" data-id="'+e(o.id)+'" data-stage="'+stage+'">'+icon('pin',17)+' Ver destino en el mapa</button>';
+ if(done)return '';
+ if(pending)return '<button class="button primary wide" data-act="claim" data-id="'+e(o.id)+'">'+icon('check',18)+' Aceptar este domicilio</button>'+
+  '<details class="ry-more-actions" data-persist="courier-'+e(o.id)+'"><summary>Ver las rutas antes de aceptar</summary>'+
+  '<div class="order-actions">'+link(pickupPlace,'Ir a recoger',false)+link(dropPlace,'Ver dirección de entrega',false)+'</div></details>';
+ return '<div class="ry-courier-next"><span class="ry-next-label">QUÉ HACER AHORA</span><strong>'+e(
+  o.status==='accepted'?'Ve al negocio y recoge el pedido':o.status==='at_pickup'?'Recoge el paquete en el negocio':
+  o.status==='picked_up'?'Lleva el pedido al cliente':'Entrega el paquete y pide el código'
+ )+'</strong>'+
+ '<div class="ry-next-actions">'+link(pickup?pickupPlace:dropPlace,pickup?'Cómo llegar al negocio':'Cómo llegar al cliente',true)+
+ (next?'<button class="button tonal" data-act="'+(next[0]==='delivered'?'deliveryOtp':'progress')+
+ '" data-id="'+e(o.id)+'" data-next="'+next[0]+'">'+icon('check',17)+' '+next[1]+'</button>':'')+'</div></div>'+
+ '<details class="ry-more-actions" data-persist="courier-'+e(o.id)+'"><summary>Otras rutas y opciones</summary>'+
+ '<div class="order-actions">'+link(pickupPlace,'Ver ruta al negocio',false)+link(dropPlace,'Ver ruta al cliente',false)+
+ preview(pickup?'pickup':'dropoff')+orderManageButtons(o,'repartidores')+orderSupportButton(o,'repartidores')+'</div></details>';
 }
 function empty(heading,desc,ico='clipboard'){return `<div class="empty">${icon(ico,31)}<b>${e(heading)}</b><small>${e(desc)}</small></div>`}
 function clientHome(){return `<div class="hero"><span class="eyebrow">ENTREGAS EN POPAYÁN</span><h1>Lo que necesitas, <br> hasta donde estés.</h1><p>Una compra, un encargo o un paquete. Elige el servicio y te ayudamos a moverlo.</p><div class="illustration">${icon('logo',155)}</div></div><section class="spaced"><div class="section-title"><h2>¿Qué hacemos hoy?</h2></div><div class="services"><button class="service" data-act="service" data-service="shop"><span class="ico-wrap">${icon('bag',27)}</span><b>Comprar</b><small>Encarga productos de cualquier tienda</small></button><button class="service" data-act="service" data-service="pickup"><span class="ico-wrap">${icon('receipt',27)}</span><b>Recoger</b><small>Traemos tu compra ya preparada</small></button><button class="service" data-act="service" data-service="parcel"><span class="ico-wrap">${icon('box',27)}</span><b>Enviar</b><small>Envía un paquete de un punto a otro</small></button></div></section><section class="spaced"><div class="section-title"><h2>Tus pedidos</h2><button class="button ghost small" data-act="nav" data-view="pedidos">Ver todos ${icon('chevron',15)}</button></div>${model.orders.filter(o=>o.source==='customer').length?model.orders.filter(o=>o.source==='customer').slice(0,2).map(o=>newOrderCard(o,'cliente')).join(''):empty('Aquí aparecerán tus pedidos','Solicita tu primer servicio para empezar.','box')}</section><div class="card soft" style="margin-top:15px"><div class="inline">${icon('shield',25)} <h3 style="margin:0">Tu pedido, paso a paso</h3></div><p>Desde el momento en que el domiciliario acepta hasta que confirma la entrega. Comparte el enlace de seguimiento cuando el servicio esté conectado.</p></div>`}
