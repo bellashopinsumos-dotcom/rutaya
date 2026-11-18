@@ -15,7 +15,7 @@ export async function signOut(){if(isLive){const {error}=await api.auth.signOut(
 export async function getStore(){if(!isLive)return read().store;let user=await currentUser();if(!user)return null;const {data,error}=await api.from('businesses').select('id,name,address,lat,lng,approved').eq('owner_user_id',user.id).maybeSingle();if(error)throw error;return data}
 export async function getPublicStores(){if(!isLive){const s=read().store;return s?[s]:[]}const {data,error}=await api.from('businesses').select('id,name,address,lat,lng').eq('approved',true).not('lat','is',null).limit(200);if(error)throw error;return data||[]}
 export async function saveStore(input){if(!isLive){let d=read();d.store={...d.store,...input,verified:input.lat!=null&&input.lng!=null};write(d);return d.store}const {data,error}=await api.rpc('set_business_location',{p_name:input.name,p_address:input.address,p_lat:input.lat,p_lng:input.lng});if(error)throw error;return data}
-export async function getZones(){if(!isLive)return read().zones;const {data,error}=await api.from('tariff_zones').select('name,fee,is_example').order('name');if(error)throw error;return data||[]}
+export async function getZones(){if(!isLive)return read().zones;const {data,error}=await api.from('tariff_zones').select('name,fee,is_example,kind').eq('active',true).order('name');if(error)throw error;return (data||[]).sort((a,b)=>(a.kind==='barrio'?0:1)-(b.kind==='barrio'?0:1)||a.name.localeCompare(b.name,'es'))}
 export async function saveZones(zones){if(!isLive){let d=read();d.zones=zones;write(d);return}throw Error('Las tarifas reales se administran mediante el panel SQL seguro de Supabase. No se editan desde el navegador.')}
 export async function createOrder(order){if(!isLive){let d=read();const p={...order,id:crypto.randomUUID(),tracking_token:crypto.randomUUID(),status:'pending',delivery_mode:order.delivery_mode||'normal',dispatch_after:calculateDispatchAfter(order.delivery_mode||'normal'),fee:estimateFee(d.zones,order.dropoff_zone,order.delivery_mode||'normal'),courier_id:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};d.orders.unshift(p);write(d);return p}let {data,error}=await api.rpc('create_rutaya_order',{p_data:order});if(error)throw error;return data}
 export function estimateFee(zones,zone,mode='normal'){const base=zones.find(x=>x.name.toLowerCase()===String(zone||'').toLowerCase())?.fee;return base==null?null:Math.max(0,Number(base)+(mode==='routed'?-1000:mode==='urgent'?1500:0))}
@@ -81,7 +81,7 @@ export async function assignOrder(id,courierId,reason){
 }
 export async function getAdminZones(){
  if(!isLive)return read().zones.map(z=>({...z,active:true,is_example:true}));
- const {data,error}=await api.rpc('admin_get_rutaya_zones');
+ const {data,error}=await api.rpc('admin_list_rutaya_tariffs_v31');
  if(error)throw error;
  return data||[];
 }
@@ -91,6 +91,34 @@ export async function upsertZone(name,fee,active,isExample){
   p_name:name,p_fee:fee,p_active:active,p_is_example:isExample
  });
  if(error)throw error;
+}
+
+export async function saveBarrio(name,fee,active=true){
+ if(!isLive)throw Error('Los precios por barrio requieren conexión a Supabase');
+ const {error}=await api.rpc('admin_save_rutaya_barrio_v31',{
+  p_name:String(name||'').trim(),p_fee:fee,p_active:active===true
+ });
+ if(error)throw error;
+}
+export async function quoteDeliveryFee(name,mode='normal'){
+ if(!name)throw Error('Selecciona el barrio de entrega');
+ if(!isLive){
+  const d=read();const z=d.zones.find(x=>x.name.toLocaleLowerCase('es')===String(name).toLocaleLowerCase('es'));
+  if(!z||z.active===false)throw Error('Barrio no disponible');
+  return {name:z.name,kind:z.kind||'sector',fee:estimateFee(d.zones,name,mode),base_fee:z.fee,is_example:z.is_example!==false};
+ }
+ const {data,error}=await api.rpc('quote_rutaya_tariff_v31',{p_zone:name,p_mode:mode||'normal'});
+ if(error)throw error;
+ if(!data||!Number.isFinite(Number(data.fee)))throw Error('No hay tarifa disponible para este barrio');
+ return data;
+}
+export async function adminTariffHistory(){
+ if(!isLive)return [];
+ const {data,error}=await api.from('rutaya_tariff_history')
+  .select('neighborhood_name,action,previous_fee,new_fee,previous_active,new_active,changed_at')
+  .order('changed_at',{ascending:false}).limit(40);
+ if(error)throw error;
+ return data||[];
 }
 export async function requestPasswordReset(email){
  if(!isLive)throw Error('Recuperar contraseñas requiere conexión');
