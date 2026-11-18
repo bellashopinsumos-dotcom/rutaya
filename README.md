@@ -220,3 +220,16 @@ Las invitaciones existentes y la validación de datos en PostgreSQL se mantienen
 - Historial de entregas plegado, y los controles de **Más opciones** conservan su estado si ocurre una actualización automática de datos.
 
 **Verificación:** se comprobó sintaxis de JavaScript y representación funcional de la pantalla de negocio, las cuatro transiciones de servicio del domiciliario, opciones secundarias, y todos los campos esenciales del formulario. Sin modificar pedidos ni precios existentes. Falta validación de facilidad de uso con personas reales en celulares Android y iPhone.
+
+
+## RutaYa v30 — Administración puede solucionar entregas bloqueadas por GPS, código o celular
+
+**Administración → Pedidos:** en cada domicilio activo que tiene repartidor asignado aparece **«Confirmar que ya se entregó»** y **«Corregir etapa del pedido»**. Los botones quedan destacados como solución a problemas de operación. Otras gestiones —cancelar, asignar o cambiar repartidor, liberar, ajustar tarifa, abrir GPS, compartir enlace y consultar historial— quedan bajo «Más controles del pedido».
+
+**Confirmación manual excepcional:** seleccionar el estado, cómo se verificó (llamada al destinatario, WhatsApp del destinatario, comprobación presencial u otra evidencia), motivo de 10–500 caracteres y marcar la declaración de verificación real. Se pide una confirmación final explícita. El servidor valida que sea una cuenta administradora, que el pedido esté activo y asignado, y que solo avance a estados permitidos. Los pedidos entregados y cancelados permanecen terminales. No es posible marcar entregado un pedido sin repartidor asignado; primero se asigna desde Administración.
+
+**Auditoría:** cada intervención registra administrador, repartidor, estado anterior, estado nuevo, método, motivo y fecha en \`admin_order_interventions\`; también aparece en el historial general \`order_events\`. La intervención manual **no fabrica señal GPS ni un código OTP**, no modifica pagos ni envía WhatsApp de forma automática. La clienta verá el estado actualizado en el enlace de seguimiento cuando vuelva a consultarlo.
+
+**Migración:** \`supabase/admin-intervenciones-v30.sql\`, ya aplicada en Supabase RutaYa. No tocar la base de inventario Bella Shop.
+
+**Pruebas realizadas:** permisos de función, intento rechazado desde sesión de repartidor, rechazo de falta de confirmación y método, avance a etapa intermedia, cambio a entregado, bloqueo de segunda finalización y verificación de auditoría. Las transacciones de prueba se revirtieron completamente; no se modificaron pedidos de clientes. Se validó sintaxis JS y presentación de botones y modal. Requiere validación final en celulares reales.
