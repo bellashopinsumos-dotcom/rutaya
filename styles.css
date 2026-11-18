@@ -390,3 +390,26 @@
  .ry-primary-order-actions .button,.ry-next-actions .button{flex:initial;width:100%}
  .ry-friendly-order>h3{font-size:18px}
 }
+
+
+/* RutaYa v30: soporte e intervención manual de administración */
+.ry-admin-rescue{border:2px solid #dcc4ef;background:#f8f2ff;border-radius:15px;padding:15px;margin:16px 0 9px}
+.ry-admin-rescue-title{display:flex;align-items:flex-start;gap:10px;margin-bottom:13px}
+.ry-admin-rescue-title>svg{color:#7740b7;flex:0 0 auto}
+.ry-admin-rescue-title b{font-size:13px;color:#4b287a;display:block}
+.ry-admin-rescue-title small{font-size:12px;line-height:1.45;color:#685879;display:block;margin-top:5px}
+.ry-admin-rescue-buttons{display:flex;flex-wrap:wrap;gap:10px}
+.ry-admin-rescue-buttons .button{min-height:48px;flex:1 1 170px;font-size:13px;line-height:1.4;white-space:normal;justify-content:center;text-align:center}
+.ry-admin-rescue-buttons .button.primary{font-weight:850}
+.ry-admin-more{margin-top:13px}
+.ry-admin-more .field-line{margin-top:10px}
+.ry-admin-more .order-actions{display:flex;gap:8px;flex-wrap:wrap;margin:11px 0}
+.ry-admin-more .order-actions .button{flex:1 1 140px;white-space:normal;min-height:42px;justify-content:center;text-align:center}
+.ry-admin-needs-courier{padding:10px 11px;background:#fff5e8;border-radius:10px}
+.ry-manual-warning{display:flex;gap:10px;align-items:flex-start;background:#fff2e7;border:1px solid #efc9ab;border-radius:12px;color:#75441e;padding:13px;margin-bottom:15px;font-size:13px;line-height:1.5}
+.ry-manual-warning svg{flex:0 0 auto}
+.ry-manual-status-target{font-weight:700;color:#492968;background:#f2eaf9;border-radius:10px;padding:11px 13px}
+.ry-manual-confirm{display:flex;align-items:flex-start;gap:10px;line-height:1.5;border:1px solid #d1badf;background:#f9f6ff;padding:12px;border-radius:11px;margin-top:15px}
+.ry-manual-confirm input{width:19px;min-width:19px;height:19px;margin-top:1px;accent-color:#7141b3}
+.rutaya-location-modal .ry-more-actions summary{font-size:12px}
+@media(max-width:530px){.ry-admin-rescue-buttons{flex-direction:column}.ry-admin-rescue-buttons .button{width:100%;flex:none}.ry-admin-more .order-actions .button{min-width:100%}}
