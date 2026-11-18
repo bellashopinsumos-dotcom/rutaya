@@ -158,7 +158,7 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
     '<div class="ry-map-toolbar"><span id="ry-position-label" class="ry-position-label"></span></div></div>'+
     '<label for="ry-place-address" class="map-label">Dirección completa y referencia para el domiciliario</label>'+
     '<input id="ry-place-address" placeholder="Ej. Carrera 6 # 10-25, portón azul" autocomplete="street-address" value="'+escapeHTML(selected?.address||'')+'">'+
-    '<p class="field-help">El GPS marca el punto, pero necesitas revisar la calle y el número de tu casa. Si sugerimos una dirección, corrígela cuando sea necesario.</p>'+
+    '<p class="field-help">El GPS marca el punto, pero necesitas revisar la calle y el número de tu casa. Para sugerir una dirección se consulta OpenStreetMap; puedes corregirla o escribirla manualmente.</p>'+
     '<details class="ry-advanced"><summary>Opciones avanzadas (no necesarias)</summary><div class="ry-advanced-inner"><input id="ry-place-coords" placeholder="Latitud, longitud o enlace con coordenadas"><button id="ry-use-coords" type="button" class="button outline small">Marcar ese punto</button></div><small>Los enlaces cortos de Google Maps no siempre incluyen coordenadas. Puedes marcar el lugar directamente en el mapa.</small></details>'+
     '<div id="ry-picker-feedback" class="field-help ry-picker-feedback">'+(selected?'Punto seleccionado. Comprueba la dirección.':'Escribe una dirección y pulsa Buscar, o usa tu ubicación actual.')+'</div>'+
    '</div>'+
@@ -174,7 +174,7 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
   const position=byId('ry-position-label');
   const save=byId('ry-save-point');
   function updateSaveState(){
-   const valid=selected&&Number.isFinite(selected.lat)&&Number.isFinite(selected.lng)&&addressInput.value.trim().length>3;
+   const valid=selected&&Number.isFinite(selected.lat)&&Number.isFinite(selected.lng)&&addressInput.value.trim().length>=5;
    save.disabled=!valid;
    position.textContent=selected?'Punto marcado':'Marca un punto';
   }
@@ -303,7 +303,7 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
   save.onclick=()=>{
    if(!selected||!Number.isFinite(selected.lat)||!Number.isFinite(selected.lng)){feedback.textContent='Primero marca un punto en el mapa.';return}
    const addr=addressInput.value.trim();
-   if(addr.length<4){feedback.textContent='Indica la dirección o una referencia (mínimo cuatro letras).';return}
+   if(addr.length<5){feedback.textContent='Indica una calle, número de casa o referencia (mínimo cinco caracteres).';return}
    const result={lat:selected.lat,lng:selected.lng,address:addr};
    if(typeof onSelect==='function')onSelect(result);
    finish(result);
