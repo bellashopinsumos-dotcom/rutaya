@@ -1119,8 +1119,9 @@ if(!/^3\d{9}$/.test(phoneDigits)&&!/^573\d{9}$/.test(phoneDigits))
 }else if(action==='confirmManage'){
  if(model.sending)return;
  const op=model.manageAction;
- const reason=document.getElementById('ry-manage-reason')?.value.trim()||'';
- if(reason.length<5)throw Error('Escribe un motivo de al menos cinco caracteres');
+ const manual=op==='adminDeliver'||op==='adminAdvance';
+ const reason=(document.getElementById(manual?'ry-manual-reason':'ry-manage-reason')?.value||'').trim();
+ if(reason.length<(manual?10:5))throw Error(manual?'Explica el motivo de la corrección en al menos diez caracteres.':'Escribe un motivo de al menos cinco caracteres.');
  const order=model.orders.find(x=>x.id===id);
  if(op==='cancel'&&isAdmin()&&['picked_up','at_dropoff'].includes(order?.status)){
   if(!confirm('ATENCIÓN: el paquete ya fue recogido. ¿Confirmas que quieres cancelar administrativamente? Deberás coordinar la devolución y cualquier pago directamente.'))return;
