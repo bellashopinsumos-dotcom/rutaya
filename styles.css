@@ -458,3 +458,11 @@
 .ry-incident-open{border-inline-start:4px solid var(--purple,#683bbd)}
 .ry-incident-category{margin:10px 0 4px;font-size:14px}
 [id^="rutaya-admin-order-"]{scroll-margin-top:115px}
+
+/* RutaYa v33: avisos sonoros opcionales, visibles y accesibles en celular. */
+.ry-sound-control{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:39px;padding:8px 11px;flex:0 0 auto;border:1px solid #d9c9ed;border-radius:13px;background:#f6f0ff;color:#4f238e;font-size:12px;font-weight:850;line-height:1.1}
+.ry-sound-control[aria-pressed="true"]{background:#e6f8ee;color:#14694b;border-color:#a8e0c3}
+.ry-sound-control:focus-visible{outline:3px solid #945ed8;outline-offset:2px}
+.ry-sound-control span[aria-hidden="true"]{font-size:18px}
+@media(max-width:630px){.topbar .city{display:none}.ry-sound-control{padding:8px 9px}.ry-sound-label{font-size:11px}}
+@media(max-width:365px){.ry-sound-label{display:none}.ry-sound-control{width:39px;padding:7px}.toprow{gap:7px;padding-inline:12px}}
