@@ -251,10 +251,12 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
 
 
 export async function showFleetMap(container,couriers){
- const L=await loadLeaflet();
  if(!container?.isConnected)return null;
- const points=(couriers||[]).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng)));
- if(!points.length){container.innerHTML='<div class="ry-map-loading">Ningún domiciliario con GPS reciente. Se mostrará cuando acepte un pedido y comparta su ubicación.</div>';return null}
+ const points=(couriers||[]).filter(p=>p.lat!==null&&p.lat!==undefined&&p.lng!==null&&p.lng!==undefined
+  &&p.seen_at&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))
+  &&Math.abs(Number(p.lat))<=90&&Math.abs(Number(p.lng))<=180);
+ const L=await loadLeaflet();
+ if(!container.isConnected)return null;
  container.replaceChildren();
  const center=CONFIG.cityCenter||{lat:2.4448,lng:-76.6147};
  const map=L.map(container,{scrollWheelZoom:false}).setView([center.lat,center.lng],13);
@@ -264,13 +266,16 @@ export async function showFleetMap(container,couriers){
  const bounds=[];
  for(const courier of points){
   const pos=[Number(courier.lat),Number(courier.lng)];
-  const pin=L.circleMarker(pos,{radius:10,color:'#6730b4',weight:3,fillColor:'#9a68ec',fillOpacity:.85}).addTo(map);
+  const fill=courier.active_orders>0?'#7533d0':'#228262';
+  const pin=L.circleMarker(pos,{radius:10,color:'#56338a',weight:3,fillColor:fill,fillOpacity:.85}).addTo(map);
   const wrap=document.createElement('div'),name=document.createElement('strong'),small=document.createElement('p');
-  name.textContent=courier.name||'Domiciliario';small.textContent=(courier.active_orders||0)+' domicilio(s) activo(s)';
-  wrap.append(name,small);pin.bindPopup(wrap);bounds.push(pos);
+  name.textContent=courier.name||'Domiciliario';
+  small.textContent=courier.active_orders>0?'En reparto · '+courier.active_orders+' servicios':'Disponible y compartiendo GPS';
+  wrap.append(name,small);pin.bindPopup(wrap);
+  bounds.push(pos);
  }
  if(bounds.length>1)map.fitBounds(bounds,{padding:[25,25],maxZoom:15});
- else map.setView(bounds[0],15);
- setTimeout(()=>{if(map._container?.isConnected)map.invalidateSize()},120);
+ else if(bounds.length===1)map.setView(bounds[0],15);
+ setTimeout(()=>{if(map._container?.isConnected)map.invalidateSize()},150);
  return {destroy:()=>map.remove(),map};
 }
