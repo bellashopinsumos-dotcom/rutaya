@@ -232,3 +232,14 @@
 .fleet-courier .gps-pill{white-space:normal;text-align:right;line-height:1.35}
 .fleet-courier p{font-size:12px;color:#5f556f;margin:9px 0}
 @media(max-width:500px){.gps-admin-sharing{flex-direction:column;align-items:stretch}.gps-admin-sharing .button{max-width:none;width:100%}.fleet-courier .inline-between{flex-wrap:wrap}}
+
+
+/* RutaYa v27 · dirección GPS para destinatarias */
+.recipient-gps-instructions{display:flex;align-items:flex-start;gap:11px;margin:12px 0 9px;padding:12px 13px;background:#f2edfa;border:1px solid #e1d1ef;border-radius:12px;font-size:12px;line-height:1.5;color:#593b77}
+.recipient-gps-instructions svg{flex:0 0 auto;color:#6f35b9}
+.recipient-gps-instructions span{flex:1}
+.recipient-copy-link{padding:0;border:0;background:transparent;font-weight:800;color:#6033a8;text-decoration:underline;font:inherit;cursor:pointer}
+.ry-address-needs-check{border:2px solid #8c5ad0!important;box-shadow:0 0 0 3px #a878ed26!important;background:#faf7ff!important}
+.rutaya-location-modal .ry-gps-error{padding:11px 13px;background:#fff0eb;border:1px solid #efc0ac;color:#813d22;border-radius:10px;line-height:1.5}
+.rutaya-location-modal #ry-place-address{min-height:46px}
+.rutaya-location-modal .ry-picker-feedback{line-height:1.5;margin-top:12px}
