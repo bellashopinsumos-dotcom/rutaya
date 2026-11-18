@@ -311,6 +311,7 @@ function adminFleetPage(){
  return '<div class="pagehead"><h1>Mapa de domiciliarios</h1></div>'+
  '<div class="card"><div class="inline-between"><b>'+list.length+' domiciliarios aprobados</b>'+
  '<button class="button outline small" data-act="refreshFleet">'+icon('crosshair',16)+' Actualizar</button></div>'+
+ '<button class="button outline small" data-act="copyGpsInstructions">'+icon('copy',16)+' Copiar instrucciones para repartidores</button>'+
  '<div class="fleet-metrics"><span>'+located.length+' con GPS reciente</span><span>'+available+' sin pedido activo</span></div>'+
  '<div id="rutaya-fleet-map" class="fleet-map"></div>'+
  (located.length?'<p class="field-help">Pulsa un marcador para ver el domiciliario. El mapa se actualiza mientras tengas abierta Administración.</p>':
@@ -720,6 +721,15 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
  if((identity||vehicle)&&!confirm('¿Realmente revisaste estos documentos fuera de RutaYa? No marques algo que no comprobaste.'))return;
  b.disabled=true;await data.verifyCourier(uid,identity,vehicle,notes);
  model.verifications=await data.listCourierVerification();model.courierRatings=await data.adminCourierRatings();render();notify('Verificaciones guardadas.');
+}else if(action==='copyGpsInstructions'){
+ if(page!=='admin'||!isAdmin())throw Error('Solo Administración');
+ const msg='Hola, para que RutaYa pueda mostrar tu ubicación en el mapa de Administración:\n'+
+ '1. Entra a '+url('repartidores/')+' e inicia sesión con tu cuenta de domiciliario aprobada.\n'+
+ '2. Busca Seguimiento GPS y pulsa Compartir con Administración.\n'+
+ '3. Autoriza la ubicación precisa cuando tu celular lo solicite.\n'+
+ '4. Mantén la página abierta. Puedes pulsar Dejar de compartir o Detener GPS cuando quieras.';
+ try{await navigator.clipboard.writeText(msg);notify('Indicaciones copiadas para enviar al domiciliario.')}
+ catch{prompt('Copia estas indicaciones y envíalas al domiciliario:',msg)}
 }else if(action==='refreshFleet'){
  if(!isAdmin())throw Error('Solo administración puede ver el mapa de flota');
  await refresh();notify('Mapa actualizado con las últimas ubicaciones disponibles.');
