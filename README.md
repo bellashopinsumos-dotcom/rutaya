@@ -268,3 +268,11 @@ Las invitaciones existentes y la validación de datos en PostgreSQL se mantienen
 - **Privacidad y fiabilidad:** solo se consultan los pedidos autorizados por el backend; no se crean tablas ni se modifica Supabase. No suenan estados históricos al abrir la página ni actualizaciones de GPS sin cambio de etapa.
 - **Límites técnicos:** la página debe permanecer abierta, con audio permitido y volumen de dispositivo activado. Después de recargar, en algunos navegadores hay que tocar una vez la pantalla para desbloquear Web Audio. No es un sistema de notificaciones push: con el navegador cerrado o el móvil bloqueado no se garantiza que suene. Los estados se consultan cada ~12 s y el enlace de seguimiento cada ~8,5 s, y los navegadores pueden ralentizar esas consultas en segundo plano.
 - **Pruebas automatizadas:** `node tests/validar-v33.mjs`. Además de los tests, validar manualmente con cliente, invitación de WhatsApp, negocio, domiciliario y administrador en Android/iPhone.
+
+## RutaYa v34 — Corrección de formularios que se reiniciaban
+- Corregido el problema por el que la actualización periódica de pedidos (12 segundos), el seguimiento del cliente (8,5 segundos) o el GPS del repartidor podían reemplazar la pantalla mientras alguien escribía.
+- Cuando hay un campo activo o datos sin enviar, RutaYa mantiene el formulario abierto y consulta las novedades sin reconstruir el contenido.
+- Si una acción explícita requiere redibujar la misma vista, la aplicación restaura en memoria los valores de campos, casillas, selecciones y la posición del cursor. No almacena contraseñas ni datos personales adicionales en Supabase ni en almacenamiento permanente.
+- La protección cubre clientes, negocios, domiciliarios, administración, reportes de soporte, dirección y seguimiento de la destinataria. Los avisos y sonidos de v33 siguen funcionando.
+- Si se cambia de formulario deliberadamente (por ejemplo, al enviar, cerrar o pasar de paso), los campos pertenecen a la nueva pantalla y no se mezclan.
+- Prueba automática: `node tests/validar-v34.mjs`. Como comprobación funcional final, introducir texto durante al menos 30 segundos y recibir una actualización desde otro dispositivo.
