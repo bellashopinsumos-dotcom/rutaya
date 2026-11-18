@@ -20,4 +20,6 @@ jobs:
           node --check maps.js
           node --check icons.js
       - name: Pruebas de funciones y enlaces
-        run: node tests/validar-v32.mjs
+        run: |
+          node tests/validar-v32.mjs
+          node tests/validar-v33.mjs
