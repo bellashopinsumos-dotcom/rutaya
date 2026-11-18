@@ -180,7 +180,7 @@ export async function confirmDelivery(orderId,code,location){
 }
 export async function fleetLocations(){
  if(!isLive)return [];
- const {data,error}=await api.rpc('admin_fleet_locations');
+ const {data,error}=await api.rpc('admin_fleet_status_v26');
  if(error)throw error;
  return data||[];
 }
@@ -259,4 +259,18 @@ export async function adminCourierRatings(){
  if(!isLive)return [];
  const {data,error}=await api.rpc('admin_courier_rating_summary');
  if(error)throw error;return data||[];
+}
+
+
+export async function courierAdminLocationConsent(){
+ if(!isLive)return false;
+ const {data,error}=await api.rpc('get_rutaya_courier_admin_share');
+ if(error)throw error;
+ return data===true;
+}
+export async function setCourierAdminLocationConsent(enabled){
+ if(!isLive)throw Error('Conecta RutaYa para compartir ubicación con Administración');
+ const {data,error}=await api.rpc('set_rutaya_courier_admin_share',{p_enabled:enabled===true});
+ if(error)throw error;
+ return data===true;
 }
