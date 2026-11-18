@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - mejoras-operativas-v32
+      - main
 jobs:
   validar:
     runs-on: ubuntu-latest
