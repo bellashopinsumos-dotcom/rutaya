@@ -777,6 +777,31 @@ function recentPlacesFor(field){
  }
  return out;
 }
+
+function normalizeBarrioSearch(value){
+ return String(value||'').toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function barrioOptions(d,mode='normal',search=''){
+ const needle=normalizeBarrioSearch(search.trim());
+ const rows=(model.zones||[]).filter(z=>!needle||normalizeBarrioSearch(z.name).includes(needle));
+ const renderOption=z=>'<option value="'+e(z.name)+'" '+(d.dropoff_zone===z.name?'selected':'')+'>'+
+  e(z.name)+' — '+money(data.estimateFee(model.zones,z.name,mode))+
+  (z.is_example===false?'':' (por confirmar)')+'</option>';
+ const barrios=rows.filter(z=>z.kind==='barrio'),general=rows.filter(z=>z.kind!=='barrio');
+ return '<option value="">'+(rows.length?'Elige el barrio donde recibes':'No encontramos ese barrio')+'</option>'+
+ (barrios.length?'<optgroup label="Barrios">'+barrios.map(renderOption).join('')+'</optgroup>':'')+
+ (general.length?'<optgroup label="Zonas generales anteriores">'+general.map(renderOption).join('')+'</optgroup>':'');
+}
+function barrioChooser(d,id,mode='normal'){
+ const barrios=(model.zones||[]).filter(z=>z.kind==='barrio');
+ return '<div class="ry-barrio-picker">'+
+ '<label for="'+id+'">¿En qué barrio está la dirección de entrega?</label>'+
+ '<input type="search" data-barrio-filter="'+id+'" autocomplete="off" placeholder="Busca el nombre del barrio…" aria-label="Buscar barrio">'+
+ '<select id="'+id+'" name="dropoff_zone" required>'+barrioOptions(d,mode)+'</select>'+
+ '<p class="ry-barrio-help">'+(barrios.length?'Si no encuentras tu barrio, consulta con la tienda antes de continuar.':
+ 'Por ahora RutaYa tiene zonas generales; Administración está configurando precios por barrio.')+
+ ' Elige el barrio que corresponda a tu dirección: el GPS no identifica automáticamente sus límites.</p></div>';
+}
 function zoneEstimateNote(name){
  const z=model.zones.find(x=>x.name===name);
  if(!z)return 'Selecciona la zona según el barrio de entrega. RutaYa aún no determina automáticamente los límites de cada zona.';
