@@ -305,12 +305,27 @@ function adminStatsPage(){
 }
 function adminSupportPage(){
  const cases=model.supportCases||[];
- return '<div class="pagehead"><h1>Ayuda y novedades</h1></div>'+
- '<div class="card soft"><p>Reportes de los negocios, clientes y repartidores. Cada caso pertenece a un pedido y queda registrado. La resolución del caso no cancela el pedido automáticamente.</p></div>'+
- (cases.length?cases.map(c=>'<div class="card"><div class="inline-between"><b>Pedido '+e(String(c.order_id).slice(0,8))+'</b><span class="badge">'+e(c.status==='open'?'Pendiente':'Resuelto')+'</span></div>'+
- '<p>'+e(c.message)+'</p><small>'+e(prettyTime(c.created_at))+'</small>'+
- (c.status==='open'?'<div class="order-actions"><button class="button primary small" data-act="resolveSupport" data-case="'+e(c.id)+'">Marcar solucionado</button></div>':'')+'</div>').join(''):
- empty('Sin reportes por ahora','Cuando alguien pida ayuda, aparecerá aquí.','clipboard'));
+ const open=cases.filter(c=>c.status==='open');
+ const sorted=[...cases].sort((a,b)=>(a.status==='open'?0:1)-(b.status==='open'?0:1)||(Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0));
+ const shown=sorted.filter(c=>model.supportFilter==='all'||(model.supportFilter==='open'?c.status==='open':c.status!=='open'));
+ return '<div class="pagehead"><h1>Centro de problemas</h1><p>Atiende primero los reportes pendientes. Resolver un caso no cancela ni entrega un pedido.</p></div>'+
+ '<div class="stats"><div class="stat"><div class="num">'+open.length+'</div><small>Pendientes</small></div>'+
+ '<div class="stat"><div class="num">'+(cases.length-open.length)+'</div><small>Resueltos cargados</small></div></div>'+
+ '<div class="admin-order-filter">'+[['open','Pendientes ('+open.length+')'],['all','Todos'],['resolved','Resueltos']].map(([v,t])=>
+ '<button class="button small '+(model.supportFilter===v?'primary':'outline')+'" data-act="supportFilter" data-filter="'+v+'">'+t+'</button>').join('')+'</div>'+
+ (shown.length?shown.map(c=>{
+ const info=supportCategory(c.message),related=model.orders.find(o=>o.id===c.order_id),urgent=/seguridad|dañado/i.test(info.label);
+ return '<article class="card ry-incident-card '+(c.status==='open'?'ry-incident-open':'')+'">'+
+ '<div class="inline-between"><b>Pedido '+e(String(c.order_id).slice(0,8))+'</b><span class="badge '+(c.status==='open'?'red':'green')+'">'+(c.status==='open'?'Pendiente':'Resuelto')+'</span></div>'+
+ '<p class="ry-incident-category"><b>'+e(info.label)+'</b>'+(urgent?' · Revisar pronto':'')+'</p>'+
+ '<p>'+e(info.detail)+'</p><small>Reportado: '+e(prettyTime(c.created_at))+'</small>'+
+ (related?'<p class="field-help">Pedido: '+e(orderStatusText(related))+' · '+e(related.dropoff_zone||'Destino sin barrio')+'</p>':'')+
+ '<div class="order-actions">'+
+ (related?'<button class="button outline small" data-act="supportToOrder" data-id="'+e(c.order_id)+'">Ver y gestionar pedido</button>':'')+
+ (c.status==='open'?'<button class="button primary small" data-act="resolveSupport" data-case="'+e(c.id)+'">Marcar solucionado</button>':'')+
+ '</div></article>';
+ }).join(''):empty('No hay reportes en este filtro','Puedes cambiar el filtro para consultar el historial.','clipboard'))+
+ '<p class="field-help">Se muestran hasta 120 reportes recientes. No se guardan fotos ni comprobantes en esta sección.</p>';
 }
 function verificationControls(c){
  const v=model.verifications.find(x=>x.user_id===c.user_id)||{};
@@ -516,7 +531,7 @@ function adminHistoryPanel(o){
 }
 function adminOrderCard(o){
  const active=!['delivered','cancelled'].includes(o.status);
- return '<article class="order">'+
+ return '<article class="order" id="rutaya-admin-order-'+e(o.id)+'">'+
  '<div class="inline-between"><strong>'+e(o.items_description)+'</strong><span class="badge '+(o.status==='delivered'?'green':'')+'">'+e(orderStatusText(o))+'</span></div>'+
  '<div class="admin-order-meta"><span>'+e(o.source==='business'?'Negocio':'Cliente')+'</span><span>'+e(modeName(o.delivery_mode))+'</span><span>'+e(prettyTime(o.created_at))+'</span></div>'+
  '<p>'+e(o.pickup_address)+' → '+e(o.dropoff_address)+'</p>'+
@@ -956,7 +971,7 @@ function render(){const openDetails=new Set([...root.querySelectorAll('details[d
 async function refresh(){if(page==='confirmar')return;const before=model.orders;const next=await data.listOrders(page);const notice=changedOrderNotice(before,next);model.orders=next;if(page==='admin'&&(model.profile?.is_admin||model.profile?.role==='admin')){
  if(model.view==='mapa')model.fleet=await data.fleetLocations();
  if(model.view==='reportes'){model.stats=await data.adminStatistics(model.statsDays);model.payouts=await data.listCourierPayouts()}
- if(model.view==='soporte')model.supportCases=await data.listSupportCases();
+ if(model.view==='soporte'||model.view==='inicio')model.supportCases=await data.listSupportCases();
  if(model.view==='pedidos'){model.adminZones=await data.getAdminZones();model.tariffHistory=await data.adminTariffHistory()}
  if(model.view==='domiciliarios'){model.couriers=await data.listCouriers();model.verifications=await data.listCourierVerification();model.courierRatings=await data.adminCourierRatings()}
 }if(page==='negocios'&&model.user&&model.profile?.role==='business')model.invites=await data.listDeliveryInvitations();if(page==='repartidores'&&model.view==='caja'&&model.user){model.cash=await data.courierCashSummary();model.payouts=await data.listCourierPayouts()}if(page==='negocios'&&model.businessTrackingToken){try{model.businessTrackingData=await data.getTracking(model.businessTrackingToken)}catch(err){console.warn('No se pudo refrescar seguimiento',err)}}if(page==='seguimiento'){model.track=await data.getTracking(new URLSearchParams(location.search).get('token'))}render();if(!model.manageAction&&!model.showForm&&!model.auth)orderUpdateNotice(notice)}
@@ -973,7 +988,7 @@ async function initialize(){try{await data.init();if(page==='confirmar'){
     model.passwordRecovery=true;model.auth='password';model.loading=false;render();
    }
   });
- }model.user=await data.currentUser();model.profile=await data.profile();if(page==='repartidores'&&model.user&&model.profile?.role==='courier'&&model.profile?.approved)model.shareAdminLocation=await data.courierAdminLocationConsent();model.zones=await data.getZones();model.knownStores=await data.getPublicStores();if(page==='negocios'){model.store=await data.getStore();if(model.user&&model.profile?.role==='business')model.invites=await data.listDeliveryInvitations();}if(page==='admin'||page==='cliente'||page==='negocios'||page==='repartidores')model.orders=await data.listOrders(page);if(page==='admin'&&model.user&&(model.profile?.is_admin||model.profile?.role==='admin')){model.couriers=await data.listCouriers();model.verifications=await data.listCourierVerification();model.courierRatings=await data.adminCourierRatings();model.adminZones=await data.getAdminZones()}if(page==='seguimiento'){model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));model.poll=setInterval(async()=>{try{model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));render()}catch(err){console.warn(err)}},8500)}if(data.isLive&&model.user==null&&page!=='seguimiento'&&page!=='cliente')model.auth=true;if(page==='cliente'&&model.passwordRecovery&&model.user)model.auth='password';model.loading=false;render()}catch(err){console.error(err);model.error=err.message;model.loading=false;render()}}
+ }model.user=await data.currentUser();model.profile=await data.profile();if(page==='repartidores'&&model.user&&model.profile?.role==='courier'&&model.profile?.approved)model.shareAdminLocation=await data.courierAdminLocationConsent();model.zones=await data.getZones();model.knownStores=await data.getPublicStores();if(page==='negocios'){model.store=await data.getStore();if(model.user&&model.profile?.role==='business')model.invites=await data.listDeliveryInvitations();}if(page==='admin'||page==='cliente'||page==='negocios'||page==='repartidores')model.orders=await data.listOrders(page);if(page==='admin'&&model.user&&(model.profile?.is_admin||model.profile?.role==='admin')){model.couriers=await data.listCouriers();model.verifications=await data.listCourierVerification();model.courierRatings=await data.adminCourierRatings();model.adminZones=await data.getAdminZones();model.supportCases=await data.listSupportCases()}if(page==='seguimiento'){model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));model.poll=setInterval(async()=>{try{model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));render()}catch(err){console.warn(err)}},8500)}if(data.isLive&&model.user==null&&page!=='seguimiento'&&page!=='cliente')model.auth=true;if(page==='cliente'&&model.passwordRecovery&&model.user)model.auth='password';model.loading=false;render()}catch(err){console.error(err);model.error=err.message;model.loading=false;render()}}
 function draftChange(el){
  const draft=page==='negocios'?(model.showForm==='invite'?model.inviteDraft:model.businessDraft):model.draft;
  if(!el.name)return;
@@ -1066,6 +1081,15 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
  const id=model.supportOrderId,content=formatSupportReport(document.getElementById('support-category')?.value,document.getElementById('support-message')?.value||'');
  b.disabled=true;await data.openSupportCase(id,content);
  model.supportOrderId=null;render();notify('Tu reporte se envió a Administración.');
+}else if(action==='supportFilter'){
+ if(page!=='admin'||!isAdmin())throw Error('Acceso exclusivo de Administración');
+ if(!['open','all','resolved'].includes(b.dataset.filter))throw Error('Filtro inválido');
+ model.supportFilter=b.dataset.filter;render();
+}else if(action==='supportToOrder'){
+ if(page!=='admin'||!isAdmin())throw Error('Acceso exclusivo de Administración');
+ if(!model.orders.some(o=>o.id===id))throw Error('Este pedido no está entre los 120 cargados. Consulta el historial.');
+ model.view='inicio';model.adminOrderFilter='all';render();
+ document.getElementById('rutaya-admin-order-'+id)?.scrollIntoView({behavior:'smooth',block:'center'});
 }else if(action==='resolveSupport'){
  if(!isAdmin())throw Error('Solo administración puede resolver reportes');
  if(!confirm('¿Ya revisaste y solucionaste este problema?'))return;
