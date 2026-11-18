@@ -42,6 +42,6 @@ assert.match(app,/ordersInitialized:true|ordersInitialized=false|ordersInitializ
 assert.match(app,/localStorage\.setItem\(SOUND_PREF,'on'\)/);
 for(const path of ['index.html','admin/index.html','negocios/index.html','repartidores/index.html','seguimiento/index.html','confirmar/index.html']){
  const html=readFileSync(join(dir,path),'utf8');
- assert.match(html,/app\.js\?v=33/,path+' debe cargar versión v33');
+ assert.match(html,/app\.js\?v=34/,path+' debe cargar versión v33');
 }
 console.log('RutaYa v33: pruebas de estados, audio, seguimiento y enlaces OK');
