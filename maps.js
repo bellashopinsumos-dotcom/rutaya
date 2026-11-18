@@ -286,16 +286,15 @@ export async function openPicker({title='Elegir ubicación',starting=null,knownS
     addressInput.scrollIntoView({block:'nearest',behavior:'smooth'});
     // La búsqueda de dirección es solo una sugerencia: jamás impide marcar el punto.
     if(!addressInput.value.trim()){
-     const suggestion=await reverseAddressSuggestion(point);
-     if(closed)return;
-     if(suggestion&&selected?.lat===point.lat&&selected?.lng===point.lng&&!addressInput.value.trim()){
+     feedback.textContent='¡Ubicación lista! Escribe tu dirección abajo para que el domiciliario encuentre la casa.';
+     addressInput.focus({preventScroll:true});
+     // No bloquear la confirmación mientras OpenStreetMap busca una sugerencia.
+     reverseAddressSuggestion(point).then(suggestion=>{
+      if(closed||!suggestion||!selected||selected.lat!==point.lat||selected.lng!==point.lng||addressInput.value.trim())return;
       addressInput.value=suggestion;
       updateSaveState();
-      feedback.textContent='¡Ubicación marcada! Revisa tu dirección y pulsa Guardar mi dirección.';
-     }else if(!addressInput.value.trim()){
-      feedback.textContent='GPS localizado. Escribe tu calle, número de casa o una referencia para que el domiciliario pueda encontrarte.';
-      addressInput.focus({preventScroll:true});
-     }
+      feedback.textContent='Sugerimos una calle cercana. Revisa que sea tu dirección antes de guardar.';
+     }).catch(()=>{});
     }else{
      feedback.textContent='¡Ubicación marcada! Revisa que la dirección coincida y pulsa Guardar mi dirección.';
     }
