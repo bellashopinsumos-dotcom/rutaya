@@ -160,3 +160,17 @@ Si el paquete está en estado **recogido** o **en destino**, liberar solo es pos
 - **Evidencia fotográfica privada de entrega:** exige almacenamiento protegido, políticas de acceso, retención y consentimiento; el comprobante actual es código de 6 dígitos más ubicación GPS y evento auditado.
 - **Operación de pagos:** conciliación bancaria, reglas de comisión del repartidor, recibos, facturación y devoluciones deben definirse antes de automatizar dinero.
 - **Pruebas de extremo a extremo en dispositivos reales:** registro, mapa, OTP, aceptación, entrega, dinero, ayuda y calificación; la validación actual incluye revisión estática del código y consultas de permisos, no sustituye el piloto real.
+
+
+## RutaYa v26 — reparar el mapa de flota y permitir GPS voluntario sin pedido
+
+**Problema encontrado:** el mapa anterior excluía todos los repartidores que no tuviesen pedidos activos. El RPC de actualización GPS también descartaba silenciosamente señales de un domiciliario disponible. El 18/11/2026, Supabase RutaYa tenía un repartidor aprobado, cero servicios activos y cero señales GPS de los últimos dos minutos; por tanto, no había marcadores que mostrar.
+
+**Nuevo comportamiento:**
+- Administración → Mapa lista **todos los repartidores aprobados** aunque estén sin entregas, indicando «En reparto», «Disponible con GPS», «Autorizó compartir, sin señal reciente» o «Disponible sin GPS». El mapa siempre se centra en Popayán; no coloca coordenadas inventadas cuando no hay señal. La lista y el mapa se actualizan automáticamente mientras Administración esté abierta, y hay un botón Actualizar.
+- En el celular del repartidor, «Seguimiento GPS» contiene un control explícito **Compartir con Administración**. Al activarlo, RutaYa solicita permiso de ubicación desde el navegador, guarda el consentimiento y transmite coordenadas recientes aun sin pedido activo. Al desactivarlo, deja de compartir mientras está disponible. **Detener GPS** revoca el consentimiento y borra la última localización almacenada.
+- La ubicación durante un pedido activo sigue disponible para la clienta con enlace privado según las reglas existentes. Ningún repartidor disponible aparece en enlaces de seguimiento ajenos; el mapa general solo se consulta desde Administración.
+- Los datos GPS tienen un límite de antigüedad de dos minutos para el mapa. El permiso puede quedar autorizado sin transmisión cuando el navegador está cerrado; no se muestra ubicación en ese caso. El sistema no tiene GPS persistente con el celular bloqueado.
+- Administración puede usar **Copiar instrucciones para repartidores** para enviar la guía por WhatsApp. No puede encender a distancia el GPS ni anular el permiso del repartidor.
+- **Seguridad:** el servidor valida rol aprobado para activar/desactivar, y rol administrador para consultar flota. La función nueva \`admin_fleet_status_v26()\` evita cambiar el tipo de retorno de la función anterior. La base de inventario de Bella Shop no se modifica.
+- Archivo de migración: \`supabase/mapa-flota-v26.sql\`, ejecutado en Supabase RutaYa. La verificación de backend comprobó que Administración recupera el repartidor disponible sin geolocalización y que invitados sin sesión no pueden obtener el mapa ni cambiar permisos.
