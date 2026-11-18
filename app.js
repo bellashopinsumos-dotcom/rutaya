@@ -407,6 +407,14 @@ function stalledNote(o){
  if(!stalled(o))return '';
  return '<div class="stall-note">'+icon('alert',17)+' <span>Sin cambios hace '+inactiveMinutes(o)+' min. Revisa el servicio con la otra persona. No se cancelará automáticamente.</span></div>';
 }
+function adminManualButtons(o){
+ if(!isAdmin()||!o.courier_id||!['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status))return '';
+ return '<button class="button primary admin-deliver-btn" data-act="manageOrder" data-id="'+e(o.id)+
+  '" data-operation="adminDeliver">'+icon('check',17)+' Confirmar que ya se entregó</button>'+
+ '<button class="button tonal" data-act="manageOrder" data-id="'+e(o.id)+
+  '" data-operation="adminAdvance">'+icon('route',17)+' Corregir etapa del pedido</button>';
+}
+
 function orderManageButtons(o,role){
  const buttons=[];
  const canCancel=!['delivered','cancelled'].includes(o.status)&&(
@@ -416,12 +424,7 @@ function orderManageButtons(o,role){
  if(canCancel)buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="cancel">'+icon('close',16)+' Cancelar</button>');
  if(role==='repartidores'&&['accepted','at_pickup'].includes(o.status)&&o.courier_id===model.user?.id)
   buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="release">'+icon('arrowLeft',16)+' Liberar servicio</button>');
- if(role==='admin'&&isAdmin()&&o.courier_id&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status)){
-  buttons.push('<button class="button primary small admin-deliver-btn" data-act="manageOrder" data-id="'+e(o.id)+
-   '" data-operation="adminDeliver">'+icon('check',16)+' Marcar entregado</button>');
-  buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+
-   '" data-operation="adminAdvance">'+icon('route',16)+' Corregir etapa</button>');
- }
+
  if(role==='admin'&&isAdmin()&&['pending','accepted','at_pickup','picked_up','at_dropoff'].includes(o.status))
   buttons.push('<button class="button primary small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="assign">'+icon('user',16)+' '+(o.courier_id?'Cambiar repartidor':'Asignar repartidor')+'</button>');
  if(role==='admin'&&isAdmin()&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status))
@@ -492,11 +495,22 @@ function adminOrderCard(o){
  '<p>'+e(o.pickup_address)+' → '+e(o.dropoff_address)+'</p>'+
  stalledNote(o)+
  (o.recipient_phone?'<p class="field-help">Contacto destinatario: <a href="tel:'+e(String(o.recipient_phone).replace(/[^\d+]/g,''))+'">'+e(o.recipient_phone)+'</a></p>':'')+
- '<div class="field-line space"><input id="fee-'+e(o.id)+'" type="number" min="0" max="1000000" value="'+e(o.fee??'')+'" placeholder="Tarifa COP" '+(active?'':'disabled')+'><button class="button tonal small" data-act="setFee" data-id="'+e(o.id)+'" '+(active?'':'disabled title="Solo activos"')+'>Guardar tarifa</button></div>'+
+ (active&&o.courier_id?'<div class="ry-admin-rescue"><div class="ry-admin-rescue-title">'+icon('shield',18)+
+ '<div><b>¿El domiciliario tuvo un problema?</b><small>Si confirmó que se realizó la entrega, puedes actualizar el estado aunque falle el GPS o el código.</small></div></div>'+
+ '<div class="ry-admin-rescue-buttons">'+adminManualButtons(o)+'</div></div>':
+ active?'<p class="field-help ry-admin-needs-courier">Este pedido aún no tiene domiciliario. Asígnalo antes de confirmar una entrega.</p>':'')+
+ '<details class="ry-more-section ry-admin-more" data-persist="admin-order-'+e(o.id)+'"><summary>Más controles del pedido</summary>'+
+ '<div class="field-line space"><input id="fee-'+e(o.id)+'" type="number" min="0" max="1000000" value="'+e(o.fee??'')+
+ '" placeholder="Tarifa COP" '+(active?'':'disabled')+'><button class="button tonal small" data-act="setFee" data-id="'+e(o.id)+'" '+
+ (active?'':'disabled title="Solo activos"')+'>Guardar tarifa</button></div>'+
  '<div class="order-actions">'+orderManageButtons(o,'admin')+
- '<a class="button outline small" target="_blank" rel="noopener noreferrer" href="'+e(trackingLink(o))+'">'+icon('navigation',16)+' Ver GPS / seguimiento</a>'+
- '<button class="button outline small" data-act="copyTrack" data-token="'+e(o.tracking_token)+'">'+icon('copy',16)+' Copiar enlace clienta</button>'+
- '<button class="button outline small" data-act="adminHistory" data-id="'+e(o.id)+'">'+icon('clock',16)+' Historial</button></div>'+
+ '<a class="button outline small" target="_blank" rel="noopener noreferrer" href="'+e(trackingLink(o))+'">'+
+ icon('navigation',16)+' Ver seguimiento</a>'+
+ '<button class="button outline small" data-act="copyTrack" data-token="'+e(o.tracking_token)+'">'+
+ icon('copy',16)+' Copiar enlace para la clienta</button>'+
+ '<button class="button outline small" data-act="adminHistory" data-id="'+e(o.id)+'">'+
+ icon('clock',16)+' Ver historial de cambios</button></div></details>'+
+
  (model.adminHistoryId===o.id?adminHistoryPanel(o):'')+'</article>';
 }
 
@@ -693,7 +707,7 @@ function adminHome(){
  '<button class="button outline small" data-act="nav" data-view="pedidos">'+icon('settings',16)+' Tarifas por zona</button></div>'+
  '<div class="card soft"><div class="inline-between"><div><h2>Domiciliarios</h2><p>Invita y aprueba a quienes pueden trabajar.</p></div><button class="button primary small" data-act="nav" data-view="domiciliarios">Gestionar</button></div></div>'+
  '<div class="section-title spaced"><h2>Gestionar pedidos</h2></div>'+
- '<p class="field-help">Aquí puedes cancelar cualquier pedido activo, incluso si el repartidor lo recogió, indicando el motivo.</p>'+
+ '<p class="field-help">Si el GPS o el celular del repartidor falla, usa «Confirmar que ya se entregó» después de verificarlo. Los cambios quedan registrados.</p>'+
  '<div class="admin-order-filter"><button class="button small '+(model.adminOrderFilter==='active'?'primary':'outline')+'" data-act="adminFilter" data-filter="active">Activos ('+active.length+')</button>'+
  '<button class="button small '+(model.adminOrderFilter==='done'?'primary':'outline')+'" data-act="adminFilter" data-filter="done">Finalizados ('+done.length+')</button>'+
  '<button class="button small '+(model.adminOrderFilter==='all'?'primary':'outline')+'" data-act="adminFilter" data-filter="all">Todos</button></div>'+
