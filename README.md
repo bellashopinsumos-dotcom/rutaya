@@ -233,3 +233,16 @@ Las invitaciones existentes y la validación de datos en PostgreSQL se mantienen
 **Migración:** \`supabase/admin-intervenciones-v30.sql\`, ya aplicada en Supabase RutaYa. No tocar la base de inventario Bella Shop.
 
 **Pruebas realizadas:** permisos de función, intento rechazado desde sesión de repartidor, rechazo de falta de confirmación y método, avance a etapa intermedia, cambio a entregado, bloqueo de segunda finalización y verificación de auditoría. Las transacciones de prueba se revirtieron completamente; no se modificaron pedidos de clientes. Se validó sintaxis JS y presentación de botones y modal. Requiere validación final en celulares reales.
+
+
+## RutaYa v31 — precios por barrio en Administración
+
+**Administración → Barrios:** ahora hay un formulario para registrar nombre, tarifa base COP y si el barrio está activo; una lista para buscar barrios, subir o bajar precios, desactivar/reactivar y consultar el historial de cambios. Los sectores genéricos anteriores («Centro», «Norte», «Occidente», «Sur») siguen en «Zonas generales anteriores» para no interrumpir el sistema durante la transición. **No se inventaron barrios ni tarifas**: los nuevos valores deben ser establecidos expresamente por la persona administradora.
+
+**Negocio, cliente y destinataria del enlace:** antes de enviar el domicilio seleccionan el barrio en una lista buscable que muestra el precio calculado de ese barrio. La modalidad Normal usa la tarifa base; Urgente suma $1.500 y Enrutado resta $1.000 con mínimo $0, conforme a las reglas existentes de RutaYa. Si no aparece el barrio, deben consultar al negocio; no se permite inventar un precio desde el formulario. La ubicación GPS continúa siendo independiente y necesaria para marcar la casa exacta. RutaYa aún no comprueba automáticamente si el punto GPS está dentro de los límites de un barrio.
+
+**Cotización segura:** Supabase ofrece \`quote_rutaya_tariff_v31\`, y el sistema vuelve a consultar el precio vigente antes de crear pedidos, avisando si Administración lo cambió mientras el formulario estaba abierto. Los RPC de creación y de enlace de destinatario ya calculaban la tarifa directamente en Supabase y siguen haciéndolo. La tarifa se fija en \`orders.fee\` al crear el domicilio; modificaciones posteriores del barrio no alteran pedidos anteriores.
+
+**Seguridad e historial:** solo Administración autenticada puede guardar barrios. El historial \`rutaya_tariff_history\` registra precio anterior, precio nuevo, disponibilidad, usuario administrador y fecha. Desactivar un barrio impide nuevas cotizaciones para ese nombre, pero conserva el historial. Los precios genéricos anteriores eran ejemplos; conviene configurar los barrios reales y desactivar gradualmente las zonas generales cuando ya tengan cobertura.
+
+**Migración:** \`supabase/barrios-tarifas-v31.sql\`, aplicada solo al proyecto Supabase RutaYa. No aplicar a inventario Bella Shop. Prueba técnica transaccional (revertida): creación de barrio, cotización normal/urgente/enrutada, cambio de precio, suspensión, auditoría, ausencia de acceso administrativo anónimo y preservación de tarifas históricas. La prueba de uso presencial en teléfonos reales aún es necesaria.
