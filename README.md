@@ -258,3 +258,13 @@ Las invitaciones existentes y la validación de datos en PostgreSQL se mantienen
 - **Pruebas automáticas:** `node tests/validar-v32.mjs` y `node --check app.js`. Requiere validación manual en móvil con cada rol antes de fusionar a `main`.
 
 **Importante:** los cambios v32 se desarrollaron en una rama separada para revisión. El código de seguimiento GPS y el OTP de entregas no se modificaron.
+
+
+## RutaYa v33 — Campanita con sonido por notificaciones
+
+- **Clientes con sesión, domiciliarios, negocios y Administración:** en la cabecera hay una campanita «Activar sonido» / «Sonido activado». Se activa voluntariamente con un toque y se puede silenciar de nuevo; el ajuste queda guardado en ese navegador.
+- **Destinatarios por WhatsApp:** la misma campanita está disponible al abrir su enlace de seguimiento (sin tener cuenta). El sonido se reproduce cuando cambia el estado del pedido.
+- **Tonos diferentes:** nuevo domicilio, repartidor asignado, llegada al negocio, pedido recogido/en camino, llegada al destino, entrega finalizada y cancelación. Se generan localmente mediante Web Audio y no se descarga música.
+- **Privacidad y fiabilidad:** solo se consultan los pedidos autorizados por el backend; no se crean tablas ni se modifica Supabase. No suenan estados históricos al abrir la página ni actualizaciones de GPS sin cambio de etapa.
+- **Límites técnicos:** la página debe permanecer abierta, con audio permitido y volumen de dispositivo activado. Después de recargar, en algunos navegadores hay que tocar una vez la pantalla para desbloquear Web Audio. No es un sistema de notificaciones push: con el navegador cerrado o el móvil bloqueado no se garantiza que suene. Los estados se consultan cada ~12 s y el enlace de seguimiento cada ~8,5 s, y los navegadores pueden ralentizar esas consultas en segundo plano.
+- **Pruebas automatizadas:** `node tests/validar-v33.mjs`. Además de los tests, validar manualmente con cliente, invitación de WhatsApp, negocio, domiciliario y administrador en Android/iPhone.
