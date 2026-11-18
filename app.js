@@ -6,7 +6,7 @@ const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
 
 
@@ -28,18 +28,24 @@ function gpsLiveBadge(loc){
 function courierGpsCard(){
  const active=model.orders.some(o=>o.courier_id===model.user?.id&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status));
  const running=model.gpsWatch!=null;
- const synced=running&&active&&Boolean(model.gpsLastSentAt);
- const status=running?(active?(synced?'Último envío GPS '+gpsElapsed(model.gpsLastSentAt):'GPS iniciado. Esperando precisión o conexión.'):
- 'GPS encendido. Se enviará tu ubicación cuando tengas un domicilio activo.'):
- 'GPS apagado. La clienta no verá el movimiento hasta que lo actives.';
+ const sharing=running&&(active||model.shareAdminLocation)&&Boolean(model.gpsLastSentAt);
+ const status=sharing?'Última posición enviada '+gpsElapsed(model.gpsLastSentAt)+'.':
+ running?(active||model.shareAdminLocation?'GPS activado, esperando señal precisa o conexión.':'GPS activo, sin servicio ni permiso para compartir con Administración.'):
+ model.shareAdminLocation?'Autorizaste a Administración, pero el GPS está apagado. Pulsa Activar mi GPS.':
+ 'GPS apagado. Actívalo para compartir mientras haces entregas.';
  const accuracy=model.courierGps?.accuracy;
- const warning=Number.isFinite(accuracy)&&accuracy>100?'<div class="gps-warning">La precisión actual es de '+Math.round(accuracy)+' metros. Acércate a una ventana o activa Ubicación precisa para compartir posiciones válidas (máximo 100 m).</div>':'';
+ const warning=Number.isFinite(accuracy)&&accuracy>100?'<div class="gps-warning">Precisión de '+Math.round(accuracy)+' metros. Activa Ubicación precisa (máximo 100 m).</div>':'';
  return '<div class="card courier-gps-card"><div class="inline-between"><div><h3>'+icon('crosshair',18)+' Seguimiento GPS</h3><p>'+e(status)+'</p></div>'+
- '<span class="gps-pill '+(synced?'gps-live':running?'gps-awaiting':'gps-off')+'">'+(synced?'Compartiendo':running?'Preparado':'Apagado')+'</span></div>'+
+ '<span class="gps-pill '+(sharing?'gps-live':running?'gps-awaiting':'gps-off')+'">'+(sharing?'Transmitiendo':running?'GPS preparado':'Apagado')+'</span></div>'+
  (model.gpsError?'<div class="gps-warning">'+e(model.gpsError)+'</div>':'')+warning+
  '<div class="order-actions"><button class="button '+(running?'outline':'primary')+' small" data-act="'+(running?'stopCourierGps':'courierGps')+'">'+icon('crosshair',17)+' '+(running?'Detener GPS':'Activar mi GPS')+'</button>'+
  (running?'<button class="button tonal small" data-act="courierGps">'+icon('navigation',17)+' Actualizar ubicación</button>':'')+'</div>'+
- '<p class="field-help">Cuando aceptes un domicilio, la clienta podrá ver tu última ubicación desde su enlace. Debes mantener esta página abierta y dar permiso de ubicación. Si bloqueas el teléfono, el GPS puede dejar de actualizarse.</p></div>';
+ '<div class="gps-admin-sharing"><div><b>Ubicación para Administración</b><small>'+(
+ model.shareAdminLocation?'Autorizada: Administración podrá ver mi última posición mientras RutaYa esté abierta y el GPS transmita, aunque no tenga pedidos.':
+ 'Desactivada: cuando no tenga pedidos, mi ubicación NO se comparte con Administración.'
+ )+'</small></div>'+
+ '<button class="button '+(model.shareAdminLocation?'outline':'primary')+' small" data-act="toggleAdminGpsShare">'+icon(model.shareAdminLocation?'close':'check',16)+' '+(model.shareAdminLocation?'Dejar de compartir':'Compartir con Administración')+'</button></div>'+
+ '<p class="field-help">Durante un servicio activo se comparte la última ubicación con el seguimiento del pedido. Puedes detener el GPS cuando quieras. Si bloqueas el celular o cierras RutaYa, la transmisión puede interrumpirse.</p></div>';
 }
 
 function scheduleSelector(d){return '<label for="schedule-when">¿Deseas programar el domicilio? (opcional)</label>'+
@@ -300,17 +306,27 @@ function adminRouteGroups(){
 }
 function adminFleetPage(){
  const list=model.fleet||[];
+ const located=list.filter(c=>c.lat!=null&&c.lng!=null&&c.seen_at);
+ const available=list.filter(c=>!c.active_orders).length;
  return '<div class="pagehead"><h1>Mapa de domiciliarios</h1></div>'+
- '<div class="card"><div class="inline-between"><b>'+list.length+' repartidores con servicios activos</b>'+
+ '<div class="card"><div class="inline-between"><b>'+list.length+' domiciliarios aprobados</b>'+
  '<button class="button outline small" data-act="refreshFleet">'+icon('crosshair',16)+' Actualizar</button></div>'+
+ '<div class="fleet-metrics"><span>'+located.length+' con GPS reciente</span><span>'+available+' sin pedido activo</span></div>'+
  '<div id="rutaya-fleet-map" class="fleet-map"></div>'+
- '<p class="field-help">Se muestran ubicaciones GPS recibidas hace menos de dos minutos. Solo Administración puede ver este mapa. No indica movimiento continuo con el teléfono bloqueado.</p></div>'+
- (list.length?list.map(c=>'<div class="card"><div class="inline-between"><b>'+e(c.name||'Domiciliario')+'</b>'+gpsLiveBadge({updated_at:c.seen_at})+'</div>'+
- '<p>'+c.active_orders+' entregas activas · '+e(c.seen_at?'Señal '+gpsElapsed(c.seen_at):'Sin ubicación reciente')+'</p>'+
- (c.lat!=null?'<a class="button outline small" target="_blank" rel="noopener" href="'+e(navigationUrl({lat:c.lat,lng:c.lng}))+'">'+icon('pin',16)+' Abrir punto GPS</a>':'')+'</div>').join(''):'')+
+ (located.length?'<p class="field-help">Pulsa un marcador para ver el domiciliario. El mapa se actualiza mientras tengas abierta Administración.</p>':
+ '<p class="gps-warning">No hay posiciones GPS recientes. Los repartidores deben abrir RutaYa Repartidores, activar su GPS y, si están disponibles, autorizar «Compartir con Administración».</p>')+
+ '<p class="field-help">Las ubicaciones desaparecen del mapa cuando pasan más de dos minutos sin señal. No se puede activar a distancia el GPS de otro celular.</p></div>'+
+ (list.length?list.map(c=>{
+ const hasGps=c.lat!=null&&c.lng!=null&&c.seen_at!=null;
+ const state=c.active_orders>0?'En reparto':hasGps?'Disponible con GPS':c.sharing_enabled?'Autorizó compartir, sin señal reciente':'Disponible sin GPS';
+ return '<div class="card fleet-courier"><div class="inline-between"><b>'+e(c.name||'Domiciliario')+'</b>'+
+ '<span class="gps-pill '+(hasGps?'gps-live':'gps-off')+'">'+e(state)+'</span></div>'+
+ '<p>'+c.active_orders+' servicios activos · '+e(hasGps?'GPS actualizado '+gpsElapsed(c.seen_at):c.sharing_enabled?'Activa GPS en su celular para verlo aquí':'Sin ubicación compartida')+'</p>'+
+ (hasGps?'<a class="button outline small" target="_blank" rel="noopener noreferrer" href="'+e(navigationUrl({lat:c.lat,lng:c.lng}))+'">'+icon('pin',16)+' Ver última posición en Google Maps</a>':'')+
+ '</div>'
+ }).join(''):empty('Todavía no hay domiciliarios aprobados','Aprueba al primero en la sección Equipo para mostrarlo aquí.','user'))+
  adminRouteGroups();
 }
-
 
 function routeGroupModal(){
  const group=model.routeGroups[model.routeGroupIndex];
