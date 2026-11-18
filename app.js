@@ -459,7 +459,7 @@ function modeBanner(){return !data.isLive?`<div class="notice">${icon('info',17)
 function logo(){return `<a class="logo" href="${url('')}" aria-label="RutaYa inicio"><span class="logo-symbol">${icon('logo',25)}</span><span>Ruta<b>Ya</b></span></a>`}
 function header(){const heading={cliente:'Tu ciudad en movimiento',negocios:'Panel de negocios',repartidores:'RutaYa Repartidor',seguimiento:'Seguimiento de entrega',admin:'Administración'}[page];return `<header class="topbar"><div class="toprow">${logo()}<div class="top-actions"><div class="city">${icon('pin',15)} Popayán <span class="desktop-link">· Cauca</span></div>${page==='cliente'?`<button class="iconbtn" data-act="nav" data-view="cuenta" title="Mi cuenta">${icon('user')}</button>`:''}${page==='repartidores'?`<button class="iconbtn" data-act="courierGps" title="Activar ubicación">${icon('crosshair')}</button>`:''}</div></div></header>`}
 function footer(){return `<footer class="footer">RutaYa · Hecho para conectar Popayán <div style="margin-top:8px"><a href="${url('')}">Clientes</a><a href="${url('negocios/')}">Negocios</a><a href="${url('repartidores/')}">Domiciliarios</a><a href="${url('admin/')}">Administración</a></div><small>Las tarifas y condiciones deben confirmarse antes de iniciar el servicio.</small></footer>`}
-function bottomNav(){const items=page==='cliente'?[['inicio','home','Inicio'],['pedidos','clipboard','Mis pedidos'],['cuenta','user','Cuenta']]:page==='negocios'?[['inicio','home','Panel'],['pedidos','clipboard','Pedidos'],['cuenta','shop','Mi tienda']]:page==='repartidores'?[['inicio','bag','Disponibles'],['pedidos','route','Mis servicios'],['caja','card','Mi caja'],['cuenta','user','Perfil']]:page==='admin'?[['inicio','clipboard','Pedidos'],['mapa','pin','Mapa'],['reportes','card','Caja'],['domiciliarios','user','Equipo'],['cuenta','settings','Ajustes']]:[];return items.length?`<nav class="nav-bottom" aria-label="Navegación principal"><div class="nav-inner">${items.map(([v,i,label])=>`<button data-act="nav" data-view="${v}" class="${model.view===v?'active':''}">${icon(i,21)}${label}</button>`).join('')}</div></nav>`:''}
+function bottomNav(){const items=page==='cliente'?[['inicio','home','Inicio'],['pedidos','clipboard','Mis pedidos'],['cuenta','user','Cuenta']]:page==='negocios'?[['inicio','home','Panel'],['pedidos','clipboard','Pedidos'],['cuenta','shop','Mi tienda']]:page==='repartidores'?[['inicio','home','Inicio'],['pedidos','route','Mis entregas'],['cuenta','user','Mi perfil']]:page==='admin'?[['inicio','clipboard','Pedidos'],['mapa','pin','Mapa'],['reportes','card','Caja'],['domiciliarios','user','Equipo'],['cuenta','settings','Ajustes']]:[];return items.length?`<nav class="nav-bottom" aria-label="Navegación principal"><div class="nav-inner">${items.map(([v,i,label])=>`<button data-act="nav" data-view="${v}" class="${model.view===v?'active':''}">${icon(i,21)}${label}</button>`).join('')}</div></nav>`:''}
 
 function friendlyBusinessOrderCard(o){
  const done=['cancelled','delivered'].includes(o.status);
@@ -527,11 +527,107 @@ function clientHome(){return `<div class="hero"><span class="eyebrow">ENTREGAS E
 function clientOrders(){let orders=model.orders.filter(x=>x.source==='customer');return `<div class="pagehead"><h1>Mis pedidos</h1></div>${orders.length?orders.map(x=>newOrderCard(x,'cliente')).join(''):empty('No tienes pedidos','Puedes pedir una compra, una recogida o un envío.')}<button class="button primary wide" data-act="service" data-service="shop">${icon('bag')} Solicitar servicio</button>`}
 function accountView(){return `<div class="pagehead"><h1>Tu cuenta</h1></div><div class="card"><div class="auth-label">${icon('shield',20)} <strong>${data.isLive?(model.user?'Sesión iniciada':'Acceso a tu cuenta'):'Modo demostración'}</strong></div><p>${model.user?.email&&data.isLive?e(model.user.email):'Inicia sesión para consultar tus pedidos desde cualquier celular.'}</p>${data.isLive?(model.user?`<div class="account-actions"><button data-act="showChangePassword" class="button outline">${icon('settings',17)} Cambiar contraseña</button><button data-act="signout" class="button outline">${icon('logout',17)} Cerrar sesión</button></div>`:`<button data-act="openAuth" class="button primary">${icon('user',17)} Iniciar sesión o registrarme</button>`):`<p>La aplicación está lista para conectar autenticación y pedidos entre celulares mediante Supabase.</p>`}</div><div class="card"><h3>Otras formas de usar RutaYa</h3><div class="mini-tabs"><a href="${url('negocios/')}">${icon('shop',16)} Soy negocio</a><a href="${url('repartidores/')}">${icon('truck',16)} Soy domiciliario</a></div>${model.profile?.is_admin?`<a class="button outline wide space" href="${url('admin/')}">${icon('settings',17)} Administrar RutaYa y domiciliarios</a>`:''}</div>${model.user&&data.isLive?'<div class="card"><h3>Avisos de tus pedidos</h3><p>Te avisamos dentro de RutaYa cuando cambie un pedido. Si el navegador lo permite, puedes recibir avisos mientras la página permanezca abierta.</p><button class="button outline" data-act="enableAlerts">'+icon('info',17)+' Activar avisos del navegador</button></div>':''}`}
 function storeCard(){const s=model.store;return `<div class="card"><div class="inline-between"><div><span class="badge">${icon('shop',15)} Comercios</span><h2 style="margin-top:10px">${e(s?.name||'Configura tu negocio')}</h2><p>${e(s?.address||'Registra el punto exacto de recogida para que tus clientes te encuentren por nombre.')}</p></div><span style="color:var(--purple)">${icon('shop',32)}</span></div><div class="inline-between" style="margin-top:12px"><span class="badge ${s?.lat!=null?'green':'red'}">${s?.lat!=null?'Ubicación guardada':'Falta ubicación GPS'}</span><button class="button tonal small" data-act="editStore">${icon('settings',15)} Configurar tienda</button></div></div>`}
-function businessHome(){let orders=model.orders.filter(o=>o.source==='business');let active=orders.filter(o=>!['delivered','cancelled'].includes(o.status));return `<div class="pagehead"><div><span class="eyebrow" style="color:var(--purple)">RUTAYA PARA NEGOCIOS</span><h1>Gestión de entregas</h1></div></div>${storeCard()}<div class="stats"><div class="stat"><div class="num">${orders.length}</div><small>Solicitudes</small></div><div class="stat"><div class="num">${active.length}</div><small>En proceso</small></div><div class="stat"><div class="num">${orders.filter(o=>o.status==='delivered').length}</div><small>Entregados</small></div></div>${model.profile?.is_admin?`<div class="card soft"><div class="inline-between"><div><h3>Domiciliarios de RutaYa</h3><p>Invita y aprueba a quienes repartirán tus pedidos.</p></div><a class="button primary small" href="${url('admin/')}">${icon('user',16)} Administrar</a></div></div>`:'' }${inviteShareCard()}<div class="card spaced"><h2>La clienta completa sus datos</h2><p>Crea un enlace y envíalo por WhatsApp. La clienta escribirá su nombre, celular, dirección y punto GPS sin registrarse. El domicilio se solicitará solo cuando ella confirme.</p><button class="button primary wide" data-act="inviteForm">${icon('phone',18)} Crear enlace para la clienta</button></div><div class="card spaced"><h2>Enviar pedido a cliente</h2><p>RutaYa usará el punto de recogida de tu negocio. Registra a quién se entrega, si falta cobrar y la modalidad del domicilio. Luego podrás compartir el seguimiento por WhatsApp.</p><button class="button primary wide" data-act="businessForm">${icon('truck',19)} Solicitar un domiciliario</button></div>${businessInvitations()}<div class="section-title spaced"><h2>Entregas recientes</h2><button class="button ghost small" data-act="nav" data-view="pedidos">Ver todas ${icon('chevron',15)}</button></div>${orders.length?orders.slice(0,3).map(o=>newOrderCard(o,'negocios')).join(''):empty('No hay entregas todavía','Registra tu primer servicio desde el panel del negocio.')}`}
-function businessOrders(){const orders=model.orders.filter(o=>o.source==='business');return `<div class="pagehead"><h1>Pedidos del negocio</h1></div>${orders.length?orders.map(o=>newOrderCard(o,'negocios')).join(''):empty('Sin pedidos todavía','Cuando solicites un domiciliario podrás seguirlo y enviar el enlace por WhatsApp a la clienta.')}<button class="button primary wide" data-act="businessForm">${icon('truck',18)} Nuevo envío</button>`}
-function courierHome(){const orders=model.orders.filter(o=>o.status==='pending').sort((a,b)=>({urgent:0,normal:1,routed:2}[a.delivery_mode||'normal']??1)-({urgent:0,normal:1,routed:2}[b.delivery_mode||'normal']??1)||new Date(a.created_at)-new Date(b.created_at));return `<div class="pagehead"><div><span class="eyebrow" style="color:var(--purple)">RUTAYA REPARTIDOR</span><h1>Servicios disponibles</h1></div></div>${courierGpsCard()}${orders.length?orders.map(o=>newOrderCard(o,'repartidores')).join(''):empty('No hay solicitudes pendientes','Los nuevos pedidos que lleguen aparecerán aquí.','clipboard')}<div class="hint">${icon('shield',19)} La confirmación de llegada, recogida y entrega exige GPS dentro de 200 m del punto, con precisión máxima de 100 m.</div>`}
-function courierOrders(){const orders=model.orders.filter(o=>o.courier_id===model.user?.id&&(o.status!=='delivered'||new Date(o.updated_at).toDateString()===new Date().toDateString()));const active=orders.filter(o=>!['delivered','cancelled'].includes(o.status));return `<div class="pagehead"><h1>Mis servicios</h1></div>${courierGpsCard()}${active.length>1?`<div class="card soft"><h3>Ruta para varios domicilios</h3><p>Consulta todas tus paradas en Google Maps. El orden es sugerido y cada entrega se confirma individualmente.</p><a class="button primary wide" target="_blank" rel="noopener noreferrer" href="${e(approximateRoute(active.slice(0,5)))}">${icon('route',18)} Abrir ruta con ${active.length} entregas</a></div>`:''}${orders.length?orders.map(o=>newOrderCard(o,'repartidores')).join(''):empty('Todavía no tienes servicios asignados','Acepta un domicilio disponible para empezar.')}`}
-function courierAccount(){return `<div class="pagehead"><h1>Mi perfil de reparto</h1></div>${courierGpsCard()}${accountView()}`}
+function businessHome(){
+ const orders=model.orders.filter(o=>o.source==='business');
+ const active=orders.filter(o=>!['delivered','cancelled'].includes(o.status));
+ const done=orders.filter(o=>['delivered','cancelled'].includes(o.status));
+ const configured=model.store?.lat!=null&&model.store?.lng!=null;
+ return '<div class="pagehead ry-simple-title"><span class="eyebrow">RUTAYA PARA NEGOCIOS</span><h1>¿Qué necesitas hacer hoy?</h1>'+
+ '<p>Elige una opción para enviar un pedido. No necesitas llenar todo de una vez.</p></div>'+
+ (!configured?'<div class="ry-setup-notice">'+icon('pin',20)+' <div><b>Primero registra dónde queda tu tienda</b>'+
+ '<p>Solo necesitas hacerlo una vez.</p><button class="button primary" data-act="editStore">Registrar mi negocio</button></div></div>':'')+
+ inviteShareCard()+
+ '<div class="ry-action-grid"><div class="ry-action-tile primary-tile">'+icon('phone',25)+
+ '<h2>Que la clienta ponga su dirección</h2><p>Envía un enlace por WhatsApp. Ella escribe sus datos y confirma su casa.</p>'+
+ '<button class="button primary wide" data-act="inviteForm" '+(configured?'':'disabled')+'>Crear enlace para la clienta</button></div>'+
+ '<div class="ry-action-tile">'+icon('truck',25)+
+ '<h2>Yo tengo los datos de entrega</h2><p>Escribe tú la dirección y solicita el domicilio directamente.</p>'+
+ '<button class="button outline wide" data-act="businessForm" '+(configured?'':'disabled')+'>Crear domicilio</button></div></div>'+
+ '<div class="section-title spaced"><h2>Pedidos en curso ('+active.length+')</h2>'+
+ '<button class="button ghost small" data-act="nav" data-view="pedidos">Ver todos '+icon('chevron',15)+'</button></div>'+
+ (active.length?active.slice(0,3).map(friendlyBusinessOrderCard).join(''):
+ empty('Todo al día','Cuando tengas un domicilio activo, aparecerá aquí.'))+
+ '<details class="ry-more-section" data-persist="business-links"><summary>Enlaces enviados y pendientes ('+
+ (model.invites||[]).filter(i=>invitationStatus(i)==='Esperando clienta').length+')</summary>'+
+ businessInvitations()+'</details>'+
+ '<details class="ry-more-section" data-persist="business-summary"><summary>Resumen de mi negocio</summary>'+
+ '<div class="stats"><div class="stat"><div class="num">'+orders.length+'</div><small>Pedidos</small></div>'+
+ '<div class="stat"><div class="num">'+done.filter(o=>o.status==='delivered').length+'</div><small>Entregados</small></div>'+
+ '</div>'+storeCard()+
+ (model.profile?.is_admin?'<a class="button outline small" href="'+e(url('admin/'))+'">Abrir Administración</a>':'')+
+ '</details>';
+}
+function businessOrders(){
+ const orders=model.orders.filter(o=>o.source==='business');
+ const active=orders.filter(o=>!['delivered','cancelled'].includes(o.status));
+ const done=orders.filter(o=>['delivered','cancelled'].includes(o.status));
+ return '<div class="pagehead ry-simple-title"><h1>Mis domicilios</h1><p>Aquí puedes consultar cada entrega y compartir su seguimiento.</p></div>'+
+ '<button class="button primary wide ry-top-create" data-act="inviteForm">'+icon('phone',17)+' Crear enlace para una clienta</button>'+
+ '<div class="section-title spaced"><h2>En curso ('+active.length+')</h2></div>'+
+ (active.length?active.map(friendlyBusinessOrderCard).join(''):empty('Sin domicilios en curso','Cuando solicites uno, aparecerá aquí.'))+
+ '<details class="ry-more-section" data-persist="business-finished"><summary>Historial ('+done.length+')</summary>'+
+ (done.length?done.map(friendlyBusinessOrderCard).join(''):'<p class="field-help">Todavía no hay entregas finalizadas.</p>')+
+ '</details>'+
+ '<details class="ry-more-section" data-persist="business-other-links"><summary>Enlaces de clientas</summary>'+businessInvitations()+'</details>';
+}
+function courierGpsQuick(){
+ const running=model.gpsWatch!=null;
+ const active=model.orders.some(o=>o.courier_id===model.user?.id&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status));
+ const transmitted=running&&(active||model.shareAdminLocation)&&model.gpsLastSentAt;
+ return '<section class="card ry-gps-quick"><div class="ry-gps-quick-info">'+
+ '<div class="ry-gps-icon">'+icon('crosshair',20)+'</div><div><b>'+(!running?'GPS apagado':transmitted?'GPS compartiendo ubicación':'GPS encendido')+'</b>'+
+ '<p>'+(!running?'Enciéndelo antes de comenzar a repartir.':
+ transmitted?'Ubicación enviada '+gpsElapsed(model.gpsLastSentAt):
+ 'Está listo. Si aceptas un pedido, comenzará a compartir la ubicación.')+'</p></div></div>'+
+ '<div class="ry-gps-quick-actions">'+
+ '<button class="button '+(running?'outline':'primary')+' small" data-act="'+(running?'stopCourierGps':'courierGps')+'">'+
+ icon('crosshair',16)+' '+(running?'Detener GPS':'Activar GPS')+'</button>'+
+ '<button class="button ghost small" data-act="nav" data-view="cuenta">Opciones de GPS</button></div>'+
+ (model.gpsError?'<p class="gps-warning">'+e(model.gpsError)+'</p>':'')+'</section>';
+}
+function courierHome(){
+ const own=model.orders.filter(o=>o.courier_id===model.user?.id&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status));
+ const available=model.orders.filter(o=>o.status==='pending').sort((a,b)=>
+  ({urgent:0,normal:1,routed:2}[a.delivery_mode||'normal']??1)-({urgent:0,normal:1,routed:2}[b.delivery_mode||'normal']??1)||
+  new Date(a.created_at)-new Date(b.created_at));
+ return '<div class="pagehead ry-simple-title"><span class="eyebrow">RUTAYA REPARTIDOR</span>'+
+ '<h1>'+ (own.length?'Tienes '+own.length+' entrega'+(own.length===1?'':'s')+' en curso':'¿Listo para repartir?')+'</h1>'+
+ '<p>'+ (own.length?'Sigue el siguiente paso de cada domicilio.':
+ 'Activa tu GPS y elige un domicilio disponible.')+'</p></div>'+
+ courierGpsQuick()+
+ (own.length?'<div class="section-title spaced"><h2>Qué debes entregar ahora</h2></div>'+
+ own.slice(0,3).map(o=>newOrderCard(o,'repartidores')).join('')+
+ (own.length>3?'<button class="button outline wide" data-act="nav" data-view="pedidos">Ver mis otras entregas</button>':''):'')+
+ '<div class="section-title spaced"><h2>Domicilios disponibles ('+available.length+')</h2>'+
+ (own.length?'<button class="button ghost small" data-act="nav" data-view="pedidos">Mis entregas</button>':'')+'</div>'+
+ (available.length?available.slice(0,8).map(o=>newOrderCard(o,'repartidores')).join(''):
+ empty('No hay nuevos domicilios','Cuando aparezca uno, podrás aceptarlo aquí.','clipboard'))+
+ (available.length>8?'<p class="field-help">Mostrando los primeros ocho domicilios disponibles.</p>':'');
+}
+function courierOrders(){
+ const orders=model.orders.filter(o=>o.courier_id===model.user?.id);
+ const active=orders.filter(o=>['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status));
+ const done=orders.filter(o=>['cancelled','delivered'].includes(o.status));
+ return '<div class="pagehead ry-simple-title"><h1>Mis entregas</h1>'+
+ '<p>Entra a cada domicilio y sigue el botón que dice qué hacer ahora.</p></div>'+
+ courierGpsQuick()+
+ (active.length>1?'<div class="card ry-multi-route"><b>¿Llevas varios pedidos?</b><p>Abre todas las paradas en Google Maps para planear la ruta.</p>'+
+ '<a class="button outline small" href="'+e(approximateRoute(active.slice(0,5)))+'" target="_blank" rel="noopener noreferrer">'+
+ icon('route',17)+' Ver mi recorrido</a></div>':'')+
+ '<div class="section-title spaced"><h2>En curso ('+active.length+')</h2></div>'+
+ (active.length?active.map(o=>newOrderCard(o,'repartidores')).join(''):
+ empty('Sin entregas activas','Puedes aceptar un nuevo domicilio en Inicio.'))+
+ '<details class="ry-more-section" data-persist="courier-history"><summary>Entregas finalizadas ('+done.length+')</summary>'+
+ (done.length?done.slice(0,12).map(o=>newOrderCard(o,'repartidores')).join(''):
+ '<p class="field-help">Aquí aparecerán tus entregas anteriores.</p>')+
+ '</details>';
+}
+function courierAccount(){
+ return '<div class="pagehead ry-simple-title"><h1>Mi perfil</h1><p>Configura el GPS, tus datos y consulta tus pagos.</p></div>'+
+ '<button class="button outline wide ry-top-create" data-act="nav" data-view="caja">'+icon('card',17)+' Ver mi caja y ganancias</button>'+
+ courierGpsCard()+'<details class="ry-more-section" data-persist="courier-account">'+
+ '<summary>Mis datos y configuración</summary>'+accountView()+'</details>';
+}
 
 function adminHome(){
  const delayed=model.orders.filter(stalled);
