@@ -187,3 +187,15 @@ El selector de ubicación del enlace \`/confirmar/?token=...\` ahora:
 - Mantiene la alternativa «Marcar en el mapa» y no modifica pedidos ni invitaciones existentes.
 
 **Pruebas realizadas:** se verificó sintaxis de módulos; simulación funcional del selector con GPS concedido, sugerencia de calle, coordenadas guardadas y confirmación habilitada; simulación de permiso denegado y estado sin coordenadas. La disponibilidad real de permisos de WhatsApp/iOS/Android debe comprobarse en el dispositivo de la clienta. El geocodificador público de OpenStreetMap no es adecuado como dependencia comercial sin confirmar sus límites y condiciones de uso.
+
+
+## RutaYa v28 — formulario guiado para personas con poca experiencia digital
+
+En los enlaces de entrega enviados por WhatsApp (\`/confirmar/?token=...\`) el formulario cambió de una sola pantalla larga a **tres pasos**:
+1. **Tus datos:** nombre y celular. Valida ambos antes de avanzar.
+2. **Tu dirección:** botón grande «Poner mi dirección». El selector tiene solo dos opciones principales: usar GPS del celular o marcar la casa en el mapa. Al guardar la ubicación pasa al último paso.
+3. **Confirmar:** resumen del nombre, teléfono y dirección, elección de zona para tarifa, referencias opcionales y botón «Enviar mis datos». Permite regresar y corregir datos sin perderlos.
+
+El selector de ubicación usa primero GPS y mapa con indicaciones cortas. «Buscar por dirección» y «Más opciones» quedan plegados; se mantienen disponibles cuando el GPS no funciona. El GPS no espera la búsqueda de una calle sugerida para devolver el control al usuario. El formulario mantiene un mecanismo para abrir el enlace en el navegador externo si el navegador interno de WhatsApp bloquea permisos.
+
+Las invitaciones existentes y la validación de datos en PostgreSQL se mantienen. No se cambiaron tarifas ni estados de pedidos. Se revisó sintaxis JS, vistas de pasos, permisos GPS simulados y guardado de direcciones en un simulador de interfaz. **Falta prueba presencial en celulares reales con clientas de distintos niveles de experiencia.**
