@@ -307,3 +307,86 @@
  .rutaya-location-modal .modal-body{padding:12px 15px 20px}
  .rutaya-location-modal .modal-foot{padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
 }
+
+
+/* RutaYa v29 — interfaz sencilla para negocios y domiciliarios */
+.ry-simple-title h1{font-size:clamp(24px,5vw,34px);line-height:1.2;margin:6px 0 9px}
+.ry-simple-title p{font-size:14px;color:var(--sub);line-height:1.5;margin:0}
+.ry-simple-title .eyebrow{font-size:11px}
+.ry-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0 20px}
+.ry-action-tile{border:1px solid #e3d9ee;border-radius:18px;padding:19px;background:var(--card,#fff);display:flex;flex-direction:column;gap:9px;min-width:0}
+.ry-action-tile>svg{color:#6634af;margin-bottom:5px}
+.ry-action-tile h2{font-size:17px;line-height:1.25;margin:0}
+.ry-action-tile p{color:var(--sub);font-size:13px;line-height:1.5;margin:0 0 10px;flex:1}
+.ry-action-tile .button{white-space:normal;line-height:1.35;min-height:53px;font-size:13px}
+.ry-action-tile.primary-tile{border:2px solid #9b72d0;background:#f8f3ff}
+.ry-action-tile .button:disabled{opacity:.55;cursor:not-allowed}
+.ry-setup-notice{display:flex;gap:13px;align-items:flex-start;background:#fff5e8;border:1px solid #f0cba2;border-radius:14px;padding:16px;margin:14px 0;color:#6e4616}
+.ry-setup-notice>svg{flex:none}
+.ry-setup-notice b{display:block;font-size:14px}
+.ry-setup-notice p{font-size:12px;margin:6px 0 12px}
+.ry-setup-notice .button{min-height:43px}
+.ry-more-section{border:1px solid #e9deef;background:#faf8fc;border-radius:15px;padding:0 15px;margin:15px 0}
+.ry-more-section>summary{list-style:none;cursor:pointer;font-weight:800;font-size:13px;padding:16px 18px 16px 0;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ry-more-section>summary::-webkit-details-marker{display:none}
+.ry-more-section>summary:after{content:"＋";font-weight:900;font-size:21px;color:#6739ac}
+.ry-more-section[open]>summary:after{content:"−"}
+.ry-more-section[open]>summary{border-bottom:1px solid #ece3f3;margin-bottom:12px}
+.ry-more-section .section-title{margin-top:12px}
+.ry-more-section>.stats{margin-top:10px}
+.ry-more-section .card{margin-top:12px}
+.ry-top-create{margin:12px 0 0;min-height:48px;white-space:normal}
+.ry-friendly-order{margin:12px 0;padding:17px}
+.ry-friendly-order .inline-between{gap:9px}
+.ry-friendly-order>h3{font-size:19px;margin:13px 0 7px}
+.ry-friendly-destination{display:flex;gap:7px;align-items:flex-start;color:#453257;font-size:13px;font-weight:700;line-height:1.5;margin:7px 0}
+.ry-friendly-destination svg{flex:0 0 auto;color:#7143ad}
+.ry-friendly-order>.field-help{margin:9px 0 14px;font-size:12px}
+.ry-primary-order-actions{display:flex;flex-wrap:wrap;gap:9px}
+.ry-primary-order-actions .button{flex:1 1 180px;white-space:normal;line-height:1.35;min-height:46px;justify-content:center;text-align:center;font-size:13px}
+.ry-more-actions{border-top:1px solid #eee5f5;margin-top:16px;padding-top:10px}
+.ry-more-actions>summary{cursor:pointer;list-style:none;color:#6c3cae;font-size:13px;font-weight:800;padding:6px 0 8px}
+.ry-more-actions>summary::-webkit-details-marker{display:none}
+.ry-more-actions>summary:after{content:" ▾"}
+.ry-more-actions[open]>summary:after{content:" ▴"}
+.ry-more-actions>.order-actions,.ry-more-actions .ry-extra-detail{padding-top:12px}
+.ry-more-actions .order-actions{display:flex;gap:9px;flex-wrap:wrap}
+.ry-more-actions .order-actions .button{flex:1 1 142px;white-space:normal;line-height:1.35;min-height:43px}
+.ry-extra-detail>p{font-size:12px;line-height:1.55;overflow-wrap:anywhere;margin:5px 0}
+.ry-gps-quick{padding:15px!important;margin:14px 0 18px}
+.ry-gps-quick-info{display:flex;align-items:flex-start;gap:12px}
+.ry-gps-icon{width:40px;height:40px;min-width:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#6634ac;background:#efe7fb}
+.ry-gps-quick-info b{display:block;font-size:14px;margin:2px 0 4px}
+.ry-gps-quick-info p{font-size:12px;color:var(--sub);line-height:1.45;margin:0}
+.ry-gps-quick-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.ry-gps-quick-actions .button{flex:1 1 140px;min-height:44px;justify-content:center}
+.ry-gps-quick .gps-warning{margin-top:12px}
+.ry-courier-next{border:1px solid #dfd0f2;background:#f9f5ff;padding:13px;border-radius:13px;margin:12px 0 2px}
+.ry-next-label{display:block;color:#6c39ab;letter-spacing:.08em;font-weight:850;font-size:10px;margin-bottom:5px}
+.ry-courier-next strong{font-size:15px;line-height:1.4;display:block;color:#3d254f}
+.ry-next-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}
+.ry-next-actions .button{flex:1 1 160px;min-height:47px;line-height:1.35;white-space:normal;text-align:center;justify-content:center}
+.ry-multi-route{margin:12px 0 17px}
+.ry-multi-route>b{font-size:14px}
+.ry-multi-route p{font-size:12px;line-height:1.5}
+.ry-business-form .ry-form-step{display:flex;gap:12px;align-items:center;margin:23px 0 15px;padding:12px;background:#f5effb;border-radius:12px}
+.ry-business-form .ry-form-step:first-child{margin-top:0}
+.ry-form-step>span{width:32px;height:32px;min-width:32px;border-radius:50%;background:#7043b2;color:#fff;font-weight:900;font-size:15px;display:flex;align-items:center;justify-content:center}
+.ry-form-step b{font-size:15px;display:block;line-height:1.3;color:#482a69}
+.ry-form-step small{display:block;font-size:11px;color:#6b5b7c;margin-top:4px;line-height:1.45}
+.ry-business-form>label,.ry-invite-simple>label{font-size:13px;font-weight:800;display:block;margin:15px 0 6px}
+.ry-business-form>input,.ry-business-form>select,.ry-invite-simple>input,.ry-invite-simple>select{min-height:47px;font-size:16px}
+.ry-business-form .pick-button{width:100%;margin:11px 0}
+.ry-form-optional{margin-top:13px}
+.ry-form-optional>summary{padding:13px 12px 13px 0}
+.ry-form-optional>label{font-size:13px}
+.ry-form-optional>p:last-child{margin-bottom:12px}
+.ry-modal-intro{background:#f6f0fc;border-left:4px solid #7d4bbb;border-radius:7px;font-size:13px;line-height:1.5;padding:12px 14px;margin:0 0 18px}
+@media(max-width:650px){
+ .ry-action-grid{grid-template-columns:1fr;gap:11px}
+ .ry-action-tile{padding:17px}
+ .ry-action-tile h2{font-size:17px}
+ .ry-primary-order-actions,.ry-next-actions{flex-direction:column}
+ .ry-primary-order-actions .button,.ry-next-actions .button{flex:initial;width:100%}
+ .ry-friendly-order>h3{font-size:18px}
+}
