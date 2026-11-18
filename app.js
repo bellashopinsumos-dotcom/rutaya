@@ -1,12 +1,12 @@
-import {icon,escapeHTML as e,money,prettyTime,statusText,serviceName} from './icons.js?v=31';
-import * as data from './data.js?v=31';
-import {openPicker,gps,navigationUrl,googleEmbed,hasGoogleKey,trackingRouteUrl,showFleetMap} from './maps.js?v=31';
+import {icon,escapeHTML as e,money,prettyTime,statusText,serviceName} from './icons.js?v=32';
+import * as data from './data.js?v=32';
+import {openPicker,gps,navigationUrl,googleEmbed,hasGoogleKey,trackingRouteUrl,showFleetMap} from './maps.js?v=32';
 const cfg=window.RUTAYA_CONFIG||{};
 const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,recipientStep:1,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],tariffHistory:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,recipientStep:1,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',supportFilter:'open',adminZones:[],tariffHistory:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
 
 
@@ -209,6 +209,30 @@ function recipientInvitationPage(){
  (step===1?step1:step===2?step2:step3)+'</section>';
 }
 
+const SUPPORT_CATEGORIES=[
+ ['contacto','No responde el destinatario'],
+ ['direccion','Dirección incorrecta'],
+ ['negocio','Negocio cerrado o demorado'],
+ ['paquete','Paquete dañado o incompleto'],
+ ['pago','Problema con el pago'],
+ ['seguridad','Situación de seguridad'],
+ ['otro','Otro problema']
+];
+function supportCategorySelector(id){
+ return '<label for="'+id+'">Selecciona lo que pasó</label>'+
+ '<select id="'+id+'" required><option value="">Elige un tipo de problema</option>'+
+ SUPPORT_CATEGORIES.map(([key,label])=>'<option value="'+e(key)+'">'+e(label)+'</option>').join('')+'</select>';
+}
+function formatSupportReport(key,detail){
+ const category=SUPPORT_CATEGORIES.find(([code])=>code===key);
+ if(!category)throw Error('Selecciona el tipo de problema');
+ if(detail.trim().length<10)throw Error('Describe qué ocurrió en al menos diez caracteres');
+ return '['+category[1]+'] '+detail.trim();
+}
+function supportCategory(message){
+ const match=String(message||'').match(/^\[([^\]]{2,90})\]\s*/);
+ return match?{label:match[1],detail:String(message).slice(match[0].length)}:{label:'Sin clasificar',detail:String(message||'')};
+}
 function orderSupportButton(o,role){
  if(!model.user||role==='admin')return '';
  if(role==='repartidores'&&o.courier_id!==model.user.id)return '';
@@ -218,9 +242,12 @@ function supportOrderModal(){
  const o=model.orders.find(p=>p.id===model.supportOrderId);
  if(!o)return '';
  return modal('Reportar problema del domicilio',
- '<p>Cuenta qué ocurrió. Administración revisará el caso; si es una urgencia de seguridad, contacta directamente los servicios de emergencia.</p>'+
+ '<p>Elige qué ocurrió y cuéntanos brevemente. Administración recibirá el reporte.</p>'+
+ '<p class="field-help">Ante un peligro inmediato, contacta emergencias: este reporte no las reemplaza.</p>'+
  '<p class="field-help">'+e(o.items_description)+'</p>'+
- '<label for="support-message">Describe el problema</label><textarea id="support-message" rows="4" maxlength="800" placeholder="Ej. La dirección no coincide o no puedo contactar al destinatario."></textarea>',
+ supportCategorySelector('support-category')+
+ '<label for="support-message">Describe el problema</label>'+
+ '<textarea id="support-message" rows="4" maxlength="700" placeholder="Ej. Llamé dos veces y no responden."></textarea>',
  '<button class="button outline" data-act="closeSupport">Volver</button>'+
  '<button class="button primary" data-act="submitSupport">Enviar reporte</button>');
 }
@@ -258,10 +285,36 @@ function courierCashPage(){
  (model.payouts.length?model.payouts.map(p=>'<div class="inline-between payout-row"><span>'+e(String(p.order_id).slice(0,8))+' · '+e(p.paid_at?'Pagado':'Pendiente')+'</span><b>'+money(p.amount)+'</b></div>').join(''):
  '<p class="field-help">Todavía no hay pagos individuales registrados.</p>')+'</div>';
 }
+function csvCell(value){
+ let text=String(value??'');
+ if(/^[=+\-@\t\r]/.test(text))text="'"+text;
+ return '"'+text.replaceAll('"','""')+'"';
+}
+function exportRecentOrdersCsv(){
+ if(page!=='admin'||!isAdmin())throw Error('Acceso exclusivo de administración');
+ const days=model.statsDays||30;
+ const since=Date.now()-days*24*60*60*1000;
+ const payouts=new Map(model.payouts.map(p=>[p.order_id,p]));
+ const recent=model.orders.filter(o=>Number.isFinite(Date.parse(o.created_at))&&Date.parse(o.created_at)>=since);
+ if(!recent.length)throw Error('No hay pedidos recientes cargados para exportar');
+ const heads=['ID pedido','Fecha creación','Estado','Modalidad','Barrio destino','Tarifa COP','Pago repartidor COP','Liquidado'];
+ const lines=[heads,...recent.map(o=>{
+  const payout=payouts.get(o.id);
+  return [o.id,o.created_at,o.status,o.delivery_mode||'normal',o.dropoff_zone||'',
+   o.fee??'',payout?.amount??'',payout?(payout.paid_at?'Sí':'No'):'Sin definir'];
+ })].map(row=>row.map(csvCell).join(';'));
+ const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+ const link=document.createElement('a'),ref=URL.createObjectURL(blob);
+ link.href=ref;link.download='rutaya-pedidos-'+days+'dias-'+new Date().toISOString().slice(0,10)+'.csv';
+ document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(ref),3000);
+ return recent.length;
+}
 function adminStatsPage(){
  const stats=model.stats||{},days=model.statsDays||30;
  return '<div class="pagehead"><h1>Estadísticas y caja</h1></div>'+
  '<div class="admin-order-filter">'+[7,30,90].map(x=>'<button class="button small '+(days===x?'primary':'outline')+'" data-act="statsRange" data-days="'+x+'">'+x+' días</button>').join('')+'</div>'+
+ '<button class="button outline small" data-act="exportAdminCsv">Exportar pedidos cargados (CSV)</button>'+
+ '<p class="field-help">Incluye solo pedidos del período entre los 120 más recientes cargados. No equivale al historial completo y omite nombres, teléfonos y direcciones.</p>'+
  '<div class="stats"><div class="stat"><div class="num">'+(stats.orders??0)+'</div><small>Pedidos</small></div>'+
  '<div class="stat"><div class="num">'+(stats.delivered??0)+'</div><small>Entregados</small></div>'+
  '<div class="stat"><div class="num">'+(stats.cancelled??0)+'</div><small>Cancelados</small></div></div>'+
@@ -278,12 +331,27 @@ function adminStatsPage(){
 }
 function adminSupportPage(){
  const cases=model.supportCases||[];
- return '<div class="pagehead"><h1>Ayuda y novedades</h1></div>'+
- '<div class="card soft"><p>Reportes de los negocios, clientes y repartidores. Cada caso pertenece a un pedido y queda registrado. La resolución del caso no cancela el pedido automáticamente.</p></div>'+
- (cases.length?cases.map(c=>'<div class="card"><div class="inline-between"><b>Pedido '+e(String(c.order_id).slice(0,8))+'</b><span class="badge">'+e(c.status==='open'?'Pendiente':'Resuelto')+'</span></div>'+
- '<p>'+e(c.message)+'</p><small>'+e(prettyTime(c.created_at))+'</small>'+
- (c.status==='open'?'<div class="order-actions"><button class="button primary small" data-act="resolveSupport" data-case="'+e(c.id)+'">Marcar solucionado</button></div>':'')+'</div>').join(''):
- empty('Sin reportes por ahora','Cuando alguien pida ayuda, aparecerá aquí.','clipboard'));
+ const open=cases.filter(c=>c.status==='open');
+ const sorted=[...cases].sort((a,b)=>(a.status==='open'?0:1)-(b.status==='open'?0:1)||(Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0));
+ const shown=sorted.filter(c=>model.supportFilter==='all'||(model.supportFilter==='open'?c.status==='open':c.status!=='open'));
+ return '<div class="pagehead"><h1>Centro de problemas</h1><p>Atiende primero los reportes pendientes. Resolver un caso no cancela ni entrega un pedido.</p></div>'+
+ '<div class="stats"><div class="stat"><div class="num">'+open.length+'</div><small>Pendientes</small></div>'+
+ '<div class="stat"><div class="num">'+(cases.length-open.length)+'</div><small>Resueltos cargados</small></div></div>'+
+ '<div class="admin-order-filter">'+[['open','Pendientes ('+open.length+')'],['all','Todos'],['resolved','Resueltos']].map(([v,t])=>
+ '<button class="button small '+(model.supportFilter===v?'primary':'outline')+'" data-act="supportFilter" data-filter="'+v+'">'+t+'</button>').join('')+'</div>'+
+ (shown.length?shown.map(c=>{
+ const info=supportCategory(c.message),related=model.orders.find(o=>o.id===c.order_id),urgent=/seguridad|dañado/i.test(info.label);
+ return '<article class="card ry-incident-card '+(c.status==='open'?'ry-incident-open':'')+'">'+
+ '<div class="inline-between"><b>Pedido '+e(String(c.order_id).slice(0,8))+'</b><span class="badge '+(c.status==='open'?'red':'green')+'">'+(c.status==='open'?'Pendiente':'Resuelto')+'</span></div>'+
+ '<p class="ry-incident-category"><b>'+e(info.label)+'</b>'+(urgent?' · Revisar pronto':'')+'</p>'+
+ '<p>'+e(info.detail)+'</p><small>Reportado: '+e(prettyTime(c.created_at))+'</small>'+
+ (related?'<p class="field-help">Pedido: '+e(orderStatusText(related))+' · '+e(related.dropoff_zone||'Destino sin barrio')+'</p>':'')+
+ '<div class="order-actions">'+
+ (related?'<button class="button outline small" data-act="supportToOrder" data-id="'+e(c.order_id)+'">Ver y gestionar pedido</button>':'')+
+ (c.status==='open'?'<button class="button primary small" data-act="resolveSupport" data-case="'+e(c.id)+'">Marcar solucionado</button>':'')+
+ '</div></article>';
+ }).join(''):empty('No hay reportes en este filtro','Puedes cambiar el filtro para consultar el historial.','clipboard'))+
+ '<p class="field-help">Se muestran hasta 120 reportes recientes. No se guardan fotos ni comprobantes en esta sección.</p>';
 }
 function verificationControls(c){
  const v=model.verifications.find(x=>x.user_id===c.user_id)||{};
@@ -376,9 +444,10 @@ function routeGroupModal(){
 
 function guestSupportModal(){
  return modal('Avisar de un problema',
- '<p>Describe qué está pasando con tu domicilio. RutaYa enviará el reporte a Administración.</p>'+
+ '<p>Selecciona qué pasa con tu domicilio. El reporte llegará a Administración.</p>'+
+ supportCategorySelector('guest-support-category')+
  '<label for="guest-support-message">¿Qué ocurrió?</label>'+
- '<textarea id="guest-support-message" rows="4" maxlength="800" placeholder="Ej. El repartidor no encuentra la dirección."></textarea>',
+ '<textarea id="guest-support-message" rows="4" maxlength="700" placeholder="Ej. La dirección no es la correcta."></textarea>',
  '<button class="button outline" data-act="closeGuestSupport">Volver</button>'+
  '<button class="button primary" data-act="submitGuestSupport">Enviar reporte</button>');
 }
@@ -488,7 +557,7 @@ function adminHistoryPanel(o){
 }
 function adminOrderCard(o){
  const active=!['delivered','cancelled'].includes(o.status);
- return '<article class="order">'+
+ return '<article class="order" id="rutaya-admin-order-'+e(o.id)+'">'+
  '<div class="inline-between"><strong>'+e(o.items_description)+'</strong><span class="badge '+(o.status==='delivered'?'green':'')+'">'+e(orderStatusText(o))+'</span></div>'+
  '<div class="admin-order-meta"><span>'+e(o.source==='business'?'Negocio':'Cliente')+'</span><span>'+e(modeName(o.delivery_mode))+'</span><span>'+e(prettyTime(o.created_at))+'</span></div>'+
  '<p>'+e(o.pickup_address)+' → '+e(o.dropoff_address)+'</p>'+
@@ -694,12 +763,15 @@ function adminHome(){
  const delayed=model.orders.filter(stalled);
  const active=model.orders.filter(o=>!['cancelled','delivered'].includes(o.status));
  const done=model.orders.filter(o=>['cancelled','delivered'].includes(o.status));
- const shown=model.adminOrderFilter==='all'?model.orders:model.adminOrderFilter==='done'?done:active;
+ const shown=model.adminOrderFilter==='all'?model.orders:model.adminOrderFilter==='done'?done:model.adminOrderFilter==='delayed'?delayed:active;
+ const openReports=(model.supportCases||[]).filter(c=>c.status==='open').length;
  return '<div class="pagehead"><h1>Panel administrativo</h1></div>'+
  '<div class="stats"><div class="stat"><div class="num">'+model.orders.length+'</div><small>Pedidos</small></div>'+
  '<div class="stat"><div class="num">'+model.orders.filter(o=>o.status==='pending').length+'</div><small>Disponibles</small></div>'+
- '<div class="stat"><div class="num">'+delayed.length+'</div><small>Para revisar</small></div></div>'+
+ '<div class="stat"><div class="num">'+delayed.length+'</div><small>Demorados</small></div>'+
+ '<div class="stat"><div class="num">'+openReports+'</div><small>Reportes abiertos</small></div></div>'+
  (delayed.length?'<div class="card notice-card"><h3>'+icon('alert',20)+' Servicios con retraso</h3><p>Hay '+delayed.length+' servicios sin actualización reciente. Revisa cada caso; RutaYa no cancela ni reasigna pedidos automáticamente.</p></div>':'')+
+ (openReports?'<div class="card notice-card"><h3>'+icon('alert',20)+' '+openReports+' problemas pendientes</h3><p>Hay novedades de clientes, negocios o repartidores que deben revisarse.</p><button class="button primary small" data-act="nav" data-view="soporte">Revisar reportes</button></div>':'')+
  '<div class="ops-shortcuts"><button class="button outline small" data-act="nav" data-view="mapa">'+icon('pin',16)+' Ver mapa</button>'+
  '<button class="button outline small" data-act="nav" data-view="reportes">'+icon('card',16)+' Estadísticas y pagos</button>'+
  '<button class="button outline small" data-act="nav" data-view="soporte">'+icon('alert',16)+' Reportes y ayuda</button>'+
@@ -708,6 +780,7 @@ function adminHome(){
  '<div class="section-title spaced"><h2>Gestionar pedidos</h2></div>'+
  '<p class="field-help">Si el GPS o el celular del repartidor falla, usa «Confirmar que ya se entregó» después de verificarlo. Los cambios quedan registrados.</p>'+
  '<div class="admin-order-filter"><button class="button small '+(model.adminOrderFilter==='active'?'primary':'outline')+'" data-act="adminFilter" data-filter="active">Activos ('+active.length+')</button>'+
+ '<button class="button small '+(model.adminOrderFilter==='delayed'?'primary':'outline')+'" data-act="adminFilter" data-filter="delayed">Demorados ('+delayed.length+')</button>'+
  '<button class="button small '+(model.adminOrderFilter==='done'?'primary':'outline')+'" data-act="adminFilter" data-filter="done">Finalizados ('+done.length+')</button>'+
  '<button class="button small '+(model.adminOrderFilter==='all'?'primary':'outline')+'" data-act="adminFilter" data-filter="all">Todos</button></div>'+
  (shown.length?shown.map(adminOrderCard).join(''):empty('No hay pedidos en esta sección','Selecciona otro filtro para verlos.'))+
@@ -928,7 +1001,7 @@ function render(){const openDetails=new Set([...root.querySelectorAll('details[d
 async function refresh(){if(page==='confirmar')return;const before=model.orders;const next=await data.listOrders(page);const notice=changedOrderNotice(before,next);model.orders=next;if(page==='admin'&&(model.profile?.is_admin||model.profile?.role==='admin')){
  if(model.view==='mapa')model.fleet=await data.fleetLocations();
  if(model.view==='reportes'){model.stats=await data.adminStatistics(model.statsDays);model.payouts=await data.listCourierPayouts()}
- if(model.view==='soporte')model.supportCases=await data.listSupportCases();
+ if(model.view==='soporte'||model.view==='inicio')model.supportCases=await data.listSupportCases();
  if(model.view==='pedidos'){model.adminZones=await data.getAdminZones();model.tariffHistory=await data.adminTariffHistory()}
  if(model.view==='domiciliarios'){model.couriers=await data.listCouriers();model.verifications=await data.listCourierVerification();model.courierRatings=await data.adminCourierRatings()}
 }if(page==='negocios'&&model.user&&model.profile?.role==='business')model.invites=await data.listDeliveryInvitations();if(page==='repartidores'&&model.view==='caja'&&model.user){model.cash=await data.courierCashSummary();model.payouts=await data.listCourierPayouts()}if(page==='negocios'&&model.businessTrackingToken){try{model.businessTrackingData=await data.getTracking(model.businessTrackingToken)}catch(err){console.warn('No se pudo refrescar seguimiento',err)}}if(page==='seguimiento'){model.track=await data.getTracking(new URLSearchParams(location.search).get('token'))}render();if(!model.manageAction&&!model.showForm&&!model.auth)orderUpdateNotice(notice)}
@@ -945,7 +1018,7 @@ async function initialize(){try{await data.init();if(page==='confirmar'){
     model.passwordRecovery=true;model.auth='password';model.loading=false;render();
    }
   });
- }model.user=await data.currentUser();model.profile=await data.profile();if(page==='repartidores'&&model.user&&model.profile?.role==='courier'&&model.profile?.approved)model.shareAdminLocation=await data.courierAdminLocationConsent();model.zones=await data.getZones();model.knownStores=await data.getPublicStores();if(page==='negocios'){model.store=await data.getStore();if(model.user&&model.profile?.role==='business')model.invites=await data.listDeliveryInvitations();}if(page==='admin'||page==='cliente'||page==='negocios'||page==='repartidores')model.orders=await data.listOrders(page);if(page==='admin'&&model.user&&(model.profile?.is_admin||model.profile?.role==='admin')){model.couriers=await data.listCouriers();model.verifications=await data.listCourierVerification();model.courierRatings=await data.adminCourierRatings();model.adminZones=await data.getAdminZones()}if(page==='seguimiento'){model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));model.poll=setInterval(async()=>{try{model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));render()}catch(err){console.warn(err)}},8500)}if(data.isLive&&model.user==null&&page!=='seguimiento'&&page!=='cliente')model.auth=true;if(page==='cliente'&&model.passwordRecovery&&model.user)model.auth='password';model.loading=false;render()}catch(err){console.error(err);model.error=err.message;model.loading=false;render()}}
+ }model.user=await data.currentUser();model.profile=await data.profile();if(page==='repartidores'&&model.user&&model.profile?.role==='courier'&&model.profile?.approved)model.shareAdminLocation=await data.courierAdminLocationConsent();model.zones=await data.getZones();model.knownStores=await data.getPublicStores();if(page==='negocios'){model.store=await data.getStore();if(model.user&&model.profile?.role==='business')model.invites=await data.listDeliveryInvitations();}if(page==='admin'||page==='cliente'||page==='negocios'||page==='repartidores')model.orders=await data.listOrders(page);if(page==='admin'&&model.user&&(model.profile?.is_admin||model.profile?.role==='admin')){model.couriers=await data.listCouriers();model.verifications=await data.listCourierVerification();model.courierRatings=await data.adminCourierRatings();model.adminZones=await data.getAdminZones();model.supportCases=await data.listSupportCases()}if(page==='seguimiento'){model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));model.poll=setInterval(async()=>{try{model.track=await data.getTracking(new URLSearchParams(location.search).get('token'));render()}catch(err){console.warn(err)}},8500)}if(data.isLive&&model.user==null&&page!=='seguimiento'&&page!=='cliente')model.auth=true;if(page==='cliente'&&model.passwordRecovery&&model.user)model.auth='password';model.loading=false;render()}catch(err){console.error(err);model.error=err.message;model.loading=false;render()}}
 function draftChange(el){
  const draft=page==='negocios'?(model.showForm==='invite'?model.inviteDraft:model.businessDraft):model.draft;
  if(!el.name)return;
@@ -1000,8 +1073,7 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
 }else if(action==='submitGuestSupport'){
  if(page!=='seguimiento')throw Error('Acceso incorrecto');
  const token=new URLSearchParams(location.search).get('token');
- const message=document.getElementById('guest-support-message')?.value.trim()||'';
- if(message.length<10)throw Error('Escribe al menos diez caracteres');
+ const message=formatSupportReport(document.getElementById('guest-support-category')?.value,document.getElementById('guest-support-message')?.value||'');
  b.disabled=true;await data.openGuestSupport(token,message);
  model.guestSupport=false;render();notify('Reporte enviado a Administración.');
 }else if(action==='submitRating'){
@@ -1036,14 +1108,24 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
 }else if(action==='closeSupport'){
  model.supportOrderId=null;render();
 }else if(action==='submitSupport'){
- const id=model.supportOrderId,content=document.getElementById('support-message')?.value.trim()||'';
- if(content.length<10)throw Error('Explica qué ocurre en al menos diez caracteres');
+ const id=model.supportOrderId,content=formatSupportReport(document.getElementById('support-category')?.value,document.getElementById('support-message')?.value||'');
  b.disabled=true;await data.openSupportCase(id,content);
  model.supportOrderId=null;render();notify('Tu reporte se envió a Administración.');
+}else if(action==='supportFilter'){
+ if(page!=='admin'||!isAdmin())throw Error('Acceso exclusivo de Administración');
+ if(!['open','all','resolved'].includes(b.dataset.filter))throw Error('Filtro inválido');
+ model.supportFilter=b.dataset.filter;render();
+}else if(action==='supportToOrder'){
+ if(page!=='admin'||!isAdmin())throw Error('Acceso exclusivo de Administración');
+ if(!model.orders.some(o=>o.id===id))throw Error('Este pedido no está entre los 120 cargados. Consulta el historial.');
+ model.view='inicio';model.adminOrderFilter='all';render();
+ document.getElementById('rutaya-admin-order-'+id)?.scrollIntoView({behavior:'smooth',block:'center'});
 }else if(action==='resolveSupport'){
  if(!isAdmin())throw Error('Solo administración puede resolver reportes');
  if(!confirm('¿Ya revisaste y solucionaste este problema?'))return;
  b.disabled=true;await data.resolveSupportCase(b.dataset.case);await refresh();notify('Reporte marcado como solucionado.');
+}else if(action==='exportAdminCsv'){
+ const count=exportRecentOrdersCsv();notify('Archivo CSV generado con '+count+' pedidos cargados.');
 }else if(action==='statsRange'){
  if(!isAdmin())throw Error('Acceso solo para administración');
  model.statsDays=Number(b.dataset.days);

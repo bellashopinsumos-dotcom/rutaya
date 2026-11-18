@@ -246,3 +246,15 @@ Las invitaciones existentes y la validación de datos en PostgreSQL se mantienen
 **Seguridad e historial:** solo Administración autenticada puede guardar barrios. El historial \`rutaya_tariff_history\` registra precio anterior, precio nuevo, disponibilidad, usuario administrador y fecha. Desactivar un barrio impide nuevas cotizaciones para ese nombre, pero conserva el historial. Los precios genéricos anteriores eran ejemplos; conviene configurar los barrios reales y desactivar gradualmente las zonas generales cuando ya tengan cobertura.
 
 **Migración:** \`supabase/barrios-tarifas-v31.sql\`, aplicada solo al proyecto Supabase RutaYa. No aplicar a inventario Bella Shop. Prueba técnica transaccional (revertida): creación de barrio, cotización normal/urgente/enrutada, cambio de precio, suspensión, auditoría, ausencia de acceso administrativo anónimo y preservación de tarifas históricas. La prueba de uso presencial en teléfonos reales aún es necesaria.
+
+
+## RutaYa v32 — Centro de problemas y administración (propuesta revisable)
+
+- **Reportes guiados:** clientes, destinatarios de enlaces y repartidores eligen categoría de incidencia y escriben una explicación. Se conserva la función de soporte en Supabase sin introducir cambios de esquema.
+- **Triage:** Administración → Reportes y ayuda permite consultar pendientes, todos y resueltos, ordenados por pendientes primero; ofrece acceso al pedido cuando aún está en los 120 pedidos cargados.
+- **Panel de pedidos:** indicador de reportes abiertos, alerta con enlace para revisarlos y filtro de domicilios demorados. No modifica ni cancela pedidos automáticamente.
+- **Caja:** exportación local de CSV para los pedidos cargados en los últimos 7, 30 o 90 días (máximo 120), con estado, tarifa, barrio, modalidad y liquidación. Por privacidad, excluye teléfonos, nombres y direcciones. No sustituye reportes históricos completos ni contabilidad definitiva.
+- **Seguridad:** conserva autenticación, las funciones RPC actuales, controles por rol y las políticas de Supabase. No altera pedidos ni tarifas existentes.
+- **Pruebas automáticas:** `node tests/validar-v32.mjs` y `node --check app.js`. Requiere validación manual en móvil con cada rol antes de fusionar a `main`.
+
+**Importante:** los cambios v32 se desarrollaron en una rama separada para revisión. El código de seguimiento GPS y el OTP de entregas no se modificaron.
