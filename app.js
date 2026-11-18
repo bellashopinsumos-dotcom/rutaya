@@ -1,13 +1,45 @@
-import {icon,escapeHTML as e,money,prettyTime,statusText,serviceName} from './icons.js?v=32';
-import * as data from './data.js?v=32';
-import {openPicker,gps,navigationUrl,googleEmbed,hasGoogleKey,trackingRouteUrl,showFleetMap} from './maps.js?v=32';
+import {icon,escapeHTML as e,money,prettyTime,statusText,serviceName} from './icons.js?v=33';
+import * as data from './data.js?v=33';
+import {openPicker,gps,navigationUrl,googleEmbed,hasGoogleKey,trackingRouteUrl,showFleetMap} from './maps.js?v=33';
+import {createSoundPlayer,orderAlert,trackingAlert,alertText} from './notification-sounds.js?v=33';
 const cfg=window.RUTAYA_CONFIG||{};
 const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,recipientStep:1,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',supportFilter:'open',adminZones:[],tariffHistory:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,recipientStep:1,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],ordersInitialized:false,adminOrderFilter:'active',supportFilter:'open',adminZones:[],tariffHistory:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
+const SOUND_PREF='rutaya_sonidos_v33';
+const soundPlayer=createSoundPlayer(window);
+let soundEnabled=(()=>{try{return localStorage.getItem(SOUND_PREF)==='on'}catch{return false}})();
+let lastSoundAt=0;
+function soundToggle(){
+ if(page==='confirmar')return '';
+ const label=soundEnabled?'Silenciar avisos':'Activar sonidos';
+ return '<button type="button" class="ry-sound-control" data-act="toggleSounds" aria-pressed="'+soundEnabled+
+  '" title="'+e(label)+'" aria-label="'+e(label)+'"><span aria-hidden="true">'+
+  (soundEnabled?'🔔':'🔕')+'</span><span class="ry-sound-label">'+e(soundEnabled?'Sonido activado':'Activar sonido')+'</span></button>';
+}
+function updateSoundToggle(){
+ const b=root.querySelector('[data-act="toggleSounds"]');
+ if(!b)return;
+ const label=soundEnabled?'Silenciar avisos':'Activar sonidos';
+ b.setAttribute('aria-pressed',String(soundEnabled));
+ b.setAttribute('aria-label',label);b.title=label;
+ b.innerHTML='<span aria-hidden="true">'+(soundEnabled?'🔔':'🔕')+'</span><span class="ry-sound-label">'+
+  (soundEnabled?'Sonido activado':'Activar sonido')+'</span>';
+}
+function ringSound(alert){
+ if(!soundEnabled||!alert)return false;
+ const now=Date.now();
+ if(now-lastSoundAt<1200)return false;
+ const played=soundPlayer.play(alert.kind);
+ if(played)lastSoundAt=now;
+ return played;
+}
+// Cada navegador necesita una interacción del usuario para desbloquear Web Audio.
+document.addEventListener('pointerdown',()=>{if(soundEnabled&&!soundPlayer.ready())void soundPlayer.unlock()},{capture:true,passive:true});
+document.addEventListener('keydown',()=>{if(soundEnabled&&!soundPlayer.ready())void soundPlayer.unlock()},{capture:true});
 
 
 function gpsElapsed(iso){
@@ -83,7 +115,7 @@ function adminCourierPage(){
 
 
 function changedOrderNotice(before,after){
- if(!before.length||model.sending)return null;
+ if(!model.ordersInitialized||model.sending)return null;
  const old=new Map(before.map(o=>[o.id,o.status]));
  const updates=after.filter(o=>old.has(o.id)&&old.get(o.id)!==o.status);
  const added=after.filter(o=>!old.has(o.id)&&o.status==='pending');
@@ -92,11 +124,13 @@ function changedOrderNotice(before,after){
   return added.length===1?'Nuevo domicilio disponible.':added.length+' nuevos domicilios disponibles.';
  return null;
 }
-function orderUpdateNotice(message){
- if(!message)return;
- if(!document.hidden)notify(message);
+function orderUpdateNotice(message,alert=null){
+ if(!message&&!alert)return;
+ ringSound(alert);
+ const text=alert?alertText(alert,page):message;
+ if(!document.hidden)notify(text);
  if(model.desktopAlerts&&'Notification' in window&&Notification.permission==='granted'&&document.hidden){
-  try{new Notification('RutaYa',{body:message,tag:'rutaya-order-update'})}catch(err){console.warn(err)}
+  try{new Notification('RutaYa',{body:text,tag:'rutaya-order-update'})}catch(err){console.warn(err)}
  }
 }
 
@@ -586,7 +620,7 @@ function notify(message){document.querySelector('.toast')?.remove();const n=docu
 function hideBtn(v,label,ico){return `<button class="button ${v?'primary':'outline'}" data-act="${e(label)}">${icon(ico,17)} ${e(label)}</button>`}
 function modeBanner(){return !data.isLive?`<div class="notice">${icon('info',17)} <span><strong>Vista de prueba:</strong> tus pedidos solo aparecen en este navegador. Los enlaces de seguimiento no funcionan en otro celular hasta conectar la base de datos.</span></div>`:''}
 function logo(){return `<a class="logo" href="${url('')}" aria-label="RutaYa inicio"><span class="logo-symbol">${icon('logo',25)}</span><span>Ruta<b>Ya</b></span></a>`}
-function header(){const heading={cliente:'Tu ciudad en movimiento',negocios:'Panel de negocios',repartidores:'RutaYa Repartidor',seguimiento:'Seguimiento de entrega',admin:'Administración'}[page];return `<header class="topbar"><div class="toprow">${logo()}<div class="top-actions"><div class="city">${icon('pin',15)} Popayán <span class="desktop-link">· Cauca</span></div>${page==='cliente'?`<button class="iconbtn" data-act="nav" data-view="cuenta" title="Mi cuenta">${icon('user')}</button>`:''}${page==='repartidores'?`<button class="iconbtn" data-act="courierGps" title="Activar ubicación">${icon('crosshair')}</button>`:''}</div></div></header>`}
+function header(){const heading={cliente:'Tu ciudad en movimiento',negocios:'Panel de negocios',repartidores:'RutaYa Repartidor',seguimiento:'Seguimiento de entrega',admin:'Administración'}[page];return `<header class="topbar"><div class="toprow">${logo()}<div class="top-actions"><div class="city">${icon('pin',15)} Popayán <span class="desktop-link">· Cauca</span></div>${soundToggle()}${page==='cliente'?`<button class="iconbtn" data-act="nav" data-view="cuenta" title="Mi cuenta">${icon('user')}</button>`:''}${page==='repartidores'?`<button class="iconbtn" data-act="courierGps" title="Activar ubicación">${icon('crosshair')}</button>`:''}</div></div></header>`}
 function footer(){return `<footer class="footer">RutaYa · Hecho para conectar Popayán <div style="margin-top:8px"><a href="${url('')}">Clientes</a><a href="${url('negocios/')}">Negocios</a><a href="${url('repartidores/')}">Domiciliarios</a><a href="${url('admin/')}">Administración</a></div><small>Las tarifas y condiciones deben confirmarse antes de iniciar el servicio.</small></footer>`}
 function bottomNav(){const items=page==='cliente'?[['inicio','home','Inicio'],['pedidos','clipboard','Mis pedidos'],['cuenta','user','Cuenta']]:page==='negocios'?[['inicio','home','Panel'],['pedidos','clipboard','Pedidos'],['cuenta','shop','Mi tienda']]:page==='repartidores'?[['inicio','home','Inicio'],['pedidos','route','Mis entregas'],['cuenta','user','Mi perfil']]:page==='admin'?[['inicio','clipboard','Pedidos'],['mapa','pin','Mapa'],['reportes','card','Caja'],['pedidos','pin','Barrios'],['domiciliarios','user','Equipo'],['cuenta','settings','Ajustes']]:[];return items.length?`<nav class="nav-bottom" aria-label="Navegación principal"><div class="nav-inner">${items.map(([v,i,label])=>`<button data-act="nav" data-view="${v}" class="${model.view===v?'active':''}">${icon(i,21)}${label}</button>`).join('')}</div></nav>`:''}
 
