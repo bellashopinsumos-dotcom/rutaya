@@ -243,3 +243,67 @@
 .rutaya-location-modal .ry-gps-error{padding:11px 13px;background:#fff0eb;border:1px solid #efc0ac;color:#813d22;border-radius:10px;line-height:1.5}
 .rutaya-location-modal #ry-place-address{min-height:46px}
 .rutaya-location-modal .ry-picker-feedback{line-height:1.5;margin-top:12px}
+
+
+/* RutaYa v28: tres pasos simples para destinatarias y selector sin tecnicismos */
+.recipient-flow{scroll-margin-top:85px}
+.recipient-head{padding:6px 0 12px}
+.recipient-head h1{font-size:clamp(23px,5vw,31px);line-height:1.15;margin-bottom:8px}
+.recipient-head p{line-height:1.45;margin:0;font-size:13px}
+.recipient-order-summary{display:flex;align-items:flex-start;gap:12px;padding:13px 15px;border-radius:14px;background:#f5f0fb;border:1px solid #e9ddf4;margin:0 0 16px}
+.recipient-order-summary svg{flex:0 0 auto;color:#7137bd}
+.recipient-order-summary span{display:block;min-width:0}
+.recipient-order-summary b{display:block;font-size:13px;color:#38264b}
+.recipient-order-summary small{display:block;font-size:12px;color:#675774;line-height:1.45;overflow-wrap:anywhere;margin-top:3px}
+.recipient-progress{margin-bottom:24px;padding-bottom:15px;border-bottom:1px solid #eee6f4}
+.recipient-progress-text{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:11px;font-size:12px}
+.recipient-progress-text strong{color:#5f2da5;font-size:13px}
+.recipient-progress-text span{font-weight:750;color:#5d516a}
+.recipient-progress-bars{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.recipient-progress-bars i{height:7px;border-radius:20px;background:#e9e0f1}
+.recipient-progress-bars i.done{background:#7440be}
+.recipient-form>h2{font-size:20px;margin:0 0 8px;line-height:1.25}
+.recipient-step-intro{font-size:13px;line-height:1.6;color:#665875;margin-bottom:18px}
+.recipient-form>label{display:block;margin-top:17px}
+.recipient-form input[type=tel],.recipient-form input[type=text],.recipient-form select,.recipient-form textarea{font-size:16px;min-height:48px}
+.recipient-form .pick-button{min-height:76px;width:100%;text-align:left;border:2px solid #9361d1;background:#faf7ff;border-radius:16px}
+.recipient-form .pick-button strong{font-size:15px}
+.recipient-form .pick-button small{font-size:12px}
+.recipient-step-tip{font-size:12px;line-height:1.55;background:#f8f3fc;padding:12px;border-radius:11px;color:#5d476e}
+.recipient-location-ok{display:flex;gap:9px;align-items:flex-start;padding:11px 13px;background:#eaf7ee;border:1px solid #b5dac1;color:#215b40;border-radius:11px;margin:11px 0}
+.recipient-location-ok svg{flex:none}
+.recipient-location-ok b,.recipient-location-ok small{display:block}
+.recipient-location-ok b{font-size:12px}
+.recipient-location-ok small{font-size:12px;line-height:1.45;overflow-wrap:anywhere;margin-top:4px}
+.recipient-help{margin-top:15px;border-top:1px solid #eee5f4;padding:13px 0}
+.recipient-help summary{cursor:pointer;font-size:12px;font-weight:800;color:#7440be}
+.recipient-help p{margin:9px 0 0;font-size:12px;line-height:1.55}
+.recipient-step-actions{display:flex;gap:10px;margin-top:24px;align-items:stretch}
+.recipient-step-actions .button{flex:1 1 0;min-width:0;white-space:normal;line-height:1.35;min-height:51px;font-size:13px;text-align:center;justify-content:center}
+.recipient-next{margin-top:26px;min-height:52px;font-size:15px}
+.recipient-summary{padding:13px 14px;background:#f7f4fa;border:1px solid #e8e0ef;border-radius:14px;margin:17px 0}
+.recipient-summary>div{display:grid;grid-template-columns:75px minmax(0,1fr);align-items:start;gap:9px;padding:6px 0;font-size:12px}
+.recipient-summary span{color:#806d90}
+.recipient-summary b{overflow-wrap:anywhere;font-size:13px;font-weight:750;color:#31243c}
+.recipient-summary button{margin-top:10px}
+.recipient-fee{padding:13px 14px;border-radius:13px;background:#f8f3ff;border:1px solid #e5d3f9;display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:17px}
+.recipient-fee>span{font-size:12px;font-weight:800}
+.recipient-fee strong{font-size:20px;color:#58259d}
+.recipient-fee small{grid-column:1 / -1;font-size:11px;line-height:1.5;color:#6c5d7c}
+.rutaya-location-modal .ry-location-step{background:#f3eefb;border-left:4px solid #7643bc;border-radius:5px 10px 10px 5px;color:#563482;font-size:13px;font-weight:900;letter-spacing:.01em;padding:10px 12px;margin:14px 0 12px}
+.rutaya-location-modal .ry-gps-first{font-size:15px;min-height:54px;margin:8px 0 10px}
+.rutaya-location-modal .ry-map-toggle{font-size:14px;min-height:49px;margin:0 0 12px}
+.rutaya-location-modal #ry-picker-feedback{font-size:12px;line-height:1.6;margin:9px 0 15px;padding:10px 12px;background:#f9f6fc;border-radius:10px}
+.rutaya-location-modal .ry-location-search{padding:13px 0;border-top:1px solid #eee7f4;border-bottom:1px solid #eee7f4;margin:14px 0}
+.rutaya-location-modal .ry-location-search summary{cursor:pointer;font-weight:750;color:#684399;font-size:13px}
+.rutaya-location-modal .ry-location-search .map-label{margin:12px 0 8px}
+.rutaya-location-modal .ry-location-search .search-place{margin:5px 0}
+.rutaya-location-modal #ry-place-address{min-height:49px;font-size:16px}
+.rutaya-location-modal .modal-foot .button{min-height:49px;white-space:normal;line-height:1.3}
+@media(max-width:420px){
+ .recipient-flow{padding:18px 15px}
+ .recipient-step-actions .button{padding:11px 9px}
+ .recipient-summary>div{grid-template-columns:62px minmax(0,1fr)}
+ .rutaya-location-modal .modal-body{padding:12px 15px 20px}
+ .rutaya-location-modal .modal-foot{padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+}
