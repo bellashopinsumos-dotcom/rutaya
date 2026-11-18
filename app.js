@@ -715,19 +715,40 @@ function adminHome(){
  '<p class="field-help">Puedes editar el valor de cualquier domicilio activo; los cambios se registran. Los pedidos finalizados son históricos.</p>';
 }
 function adminRates(){
- const zs=model.adminZones.length?model.adminZones:model.zones.map(z=>({...z,active:true,is_example:true}));
- return '<div class="pagehead"><h1>Tarifas por zona</h1></div>'+
- '<div class="card soft"><h3>Configura precios reales</h3><p>Los precios actuales pueden ser ejemplos. Escribe el valor aprobado por RutaYa y guárdalo por zona. Las modalidades ajustan ese precio automáticamente: Enrutado −$1.000, Normal base, Urgente +$1.500.</p><p class="field-help">La app no conoce todavía límites geográficos verificables de cada barrio: cliente o negocio selecciona la zona y el administrador debe comprobarla antes de operar.</p></div>'+
- '<div class="card"><h2>Zonas configuradas</h2>'+
- zs.map((z,i)=>'<div class="zone-admin-item">'+
- '<label for="zone-name-'+i+'">Nombre de la zona</label><input id="zone-name-'+i+'" value="'+e(z.name)+'" '+(z.name?'readonly':'')+' placeholder="Nombre de zona" maxlength="80">'+
- '<label for="zone-fee-'+i+'">Tarifa base (COP)</label><input id="zone-fee-'+i+'" type="number" min="0" max="100000" value="'+e(z.fee)+'">'+
- '<div class="zone-check"><label><input id="zone-active-'+i+'" type="checkbox" '+(z.active!==false?'checked':'')+'> Zona activa</label></div>'+
- '<div class="zone-check"><label><input id="zone-real-'+i+'" type="checkbox" '+(z.is_example===false?'checked':'')+'> Confirmo que es una tarifa real aprobada</label></div>'+
- '<p class="field-help">'+(z.is_example===false?'Precio marcado como real':'Tarifa de ejemplo (aún no confirmada)')+'</p>'+
- '<button class="button tonal small" data-act="saveZone" data-index="'+i+'">'+icon('check',16)+' Guardar esta zona</button></div>').join('')+
- '<button class="button outline wide space" data-act="addZone">'+icon('check',16)+' Agregar zona</button></div>'+
- '<div class="hint">'+icon('shield',18)+' Los cambios aplican a pedidos nuevos. Los ya creados conservan su valor, salvo ajuste administrativo permitido.</div>';
+ const zs=model.adminZones||[];
+ const barrios=zs.filter(z=>z.kind==='barrio');
+ const legacy=zs.map((z,i)=>({...z,index:i})).filter(z=>z.kind!=='barrio');
+ const item=(z,i)=>'<article class="ry-barrio-item" data-barrio-name="'+e(z.name.toLocaleLowerCase('es'))+'">'+
+ '<div class="inline-between"><b>'+e(z.name)+'</b><span class="gps-pill '+(z.active?'gps-live':'gps-off')+'">'+(z.active?'Activo':'Inactivo')+'</span></div>'+
+ '<label for="barrio-fee-'+i+'">Tarifa (COP)</label><input id="barrio-fee-'+i+'" type="number" min="0" max="100000" step="100" value="'+e(z.fee)+'">'+
+ '<label class="ry-barrio-toggle"><input id="barrio-active-'+i+'" type="checkbox" '+(z.active?'checked':'')+'> Disponible para domicilios</label>'+
+ '<button class="button tonal small" data-act="saveBarrio" data-index="'+i+'">'+icon('check',16)+' Guardar cambios</button></article>';
+ const legacyItem=z=>'<article class="zone-admin-item"><b>'+e(z.name)+'</b><input type="hidden" id="zone-name-'+z.index+'" value="'+e(z.name)+'">'+
+ '<label for="zone-fee-'+z.index+'">Tarifa general (COP)</label><input id="zone-fee-'+z.index+'" type="number" min="0" max="100000" value="'+e(z.fee)+'">'+
+ '<div class="zone-check"><label><input id="zone-active-'+z.index+'" type="checkbox" '+(z.active?'checked':'')+'> Zona activa</label></div>'+
+ '<div class="zone-check"><label><input id="zone-real-'+z.index+'" type="checkbox" '+(z.is_example===false?'checked':'')+'> Precio comercial confirmado</label></div>'+
+ '<button class="button outline small" data-act="saveZone" data-index="'+z.index+'">Guardar zona anterior</button></article>';
+ return '<div class="pagehead"><h1>Barrios y precios</h1><p>Agrega barrios y cambia lo que cuesta un domicilio cuando quieras.</p></div>'+
+ '<div class="ry-barrio-metrics"><span>'+barrios.length+' barrios registrados</span><span>'+barrios.filter(z=>z.active).length+' activos</span></div>'+
+ '<section class="card ry-barrio-new"><h2>Agregar un barrio</h2>'+
+ '<label for="new-barrio-name">Nombre del barrio</label><input id="new-barrio-name" maxlength="80" autocomplete="off" placeholder="Nombre del barrio">'+
+ '<label for="new-barrio-fee">Precio del domicilio (COP)</label><input id="new-barrio-fee" type="number" inputmode="numeric" min="0" max="100000" step="100" placeholder="Ej. 5000">'+
+ '<label class="ry-barrio-toggle"><input id="new-barrio-active" type="checkbox" checked> Ofrecerlo desde ahora</label>'+
+ '<button class="button primary wide" data-act="addBarrio">'+icon('check',16)+' Guardar barrio y precio</button></section>'+
+ '<section class="card ry-barrio-list"><h2>Barrios configurados</h2>'+
+ (barrios.length?'<label for="admin-barrio-search">Buscar barrio</label><input type="search" id="admin-barrio-search" placeholder="Escribe su nombre…">':
+ '<p class="field-help">Todavía no agregaste barrios; no hemos inventado nombres ni tarifas.</p>')+
+ '<div class="ry-barrio-items">'+barrios.map(item).join('')+'</div></section>'+
+ '<details class="ry-more-section" data-persist="tariff-old-zones"><summary>Zonas generales anteriores ('+legacy.length+')</summary>'+
+ '<p>Estas zonas existían antes de las tarifas por barrio. Puedes cambiar sus precios o desactivarlas cuando hayas registrado tus barrios.</p>'+
+ legacy.map(legacyItem).join('')+'</details>'+
+ '<details class="ry-more-section" data-persist="tariff-audit"><summary>Historial de precios</summary>'+
+ ((model.tariffHistory||[]).length?model.tariffHistory.map(h=>'<p class="ry-barrio-history-line"><b>'+e(h.neighborhood_name)+'</b> · '+
+ (h.previous_fee==null?'Nuevo':money(h.previous_fee)+' → '+money(h.new_fee))+
+ '<small>'+e(prettyTime(h.changed_at))+'</small></p>').join(''):
+ '<p class="field-help">Sin modificaciones registradas.</p>')+'</details>'+
+ '<div class="hint">'+icon('shield',18)+' Los nuevos precios se aplican a domicilios futuros. Los pedidos creados conservan su tarifa.</div>'+
+ '<p class="field-help">El barrio se selecciona manualmente; RutaYa todavía no valida sus límites con el GPS.</p>';
 }
 function adminSettings(){return `<div class="pagehead"><h1>Configuración</h1></div><div class="card"><h3>Estado de RutaYa</h3><p>${e(data.mode())}</p><p>Google Maps: ${hasGoogleKey()?'Clave configurada':'Pendiente de conectar API'}</p><p>Supabase: ${data.isLive?'Configurado':'Pendiente'}</p><button class="button outline small" data-act="enableAlerts">${icon('info',17)} Activar avisos mientras la página esté abierta</button><div class="ops-shortcuts"><button class="button outline small" data-act="nav" data-view="pedidos">Editar tarifas</button><button class="button outline small" data-act="nav" data-view="soporte">Reportes de ayuda</button></div></div>`}
 function trackSteps(status){
