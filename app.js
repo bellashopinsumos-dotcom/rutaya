@@ -797,6 +797,7 @@ function barrioChooser(d,id,mode='normal'){
  '<label for="'+id+'">¿En qué barrio está la dirección de entrega?</label>'+
  '<input type="search" data-barrio-filter="'+id+'" autocomplete="off" placeholder="Busca el nombre del barrio…" aria-label="Buscar barrio">'+
  '<select id="'+id+'" name="dropoff_zone" required>'+barrioOptions(d,mode)+'</select>'+
+ '<p class="ry-barrio-count" aria-live="polite"></p>'+
  '<p class="ry-barrio-help">'+(barrios.length?'Si no encuentras tu barrio, consulta con la tienda antes de continuar.':
  'Por ahora RutaYa tiene zonas generales; Administración está configurando precios por barrio.')+
  ' Elige el barrio que corresponda a tu dirección: el GPS no identifica automáticamente sus límites.</p></div>';
@@ -951,6 +952,27 @@ root.addEventListener('input',ev=>{
   for(const item of root.querySelectorAll('.ry-barrio-item')){
    const name=(item.dataset.barrioName||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
    item.hidden=!name.includes(needle);
+  }
+  return;
+ }
+ if(input.matches('[data-barrio-filter]')){
+  const target=document.getElementById(input.dataset.barrioFilter);
+  if(!target)return;
+  const draft=page==='negocios'?model.businessDraft:model.draft;
+  const mode=page==='confirmar'?model.invitation?.delivery_mode:draft.delivery_mode||'normal';
+  const current=target.value;
+  target.innerHTML=barrioOptions(draft,mode,input.value);
+  target.value=current;
+  if(target.value!==current){
+   draft.dropoff_zone='';
+   const price=page==='confirmar'?document.querySelector('.recipient-fee strong'):
+     document.querySelector('.ry-business-form .big-price,.modal .location-card .big-price');
+   if(price)price.textContent=money(null);
+  }
+  const help=input.closest('.ry-barrio-picker')?.querySelector('.ry-barrio-count');
+  if(help){
+   const num=(model.zones||[]).filter(z=>normalizeBarrioSearch(z.name).includes(normalizeBarrioSearch(input.value.trim()))).length;
+   help.textContent=num?num+' opción'+(num===1?'':'es')+' encontrada'+(num===1?'':'s'):'Ese barrio no está en la lista. Consulta con la tienda.';
   }
   return;
  }
