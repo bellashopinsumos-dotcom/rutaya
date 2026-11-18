@@ -6,7 +6,7 @@ const page=document.body.dataset.page||'cliente';
 const root=document.getElementById('app');
 const base=new URL('./',import.meta.url);
 const url=path=>new URL(path,base).href;
-const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
+const model={view:'inicio',orders:[],zones:[],store:null,knownStores:[],draft:{},businessDraft:{},showForm:false,service:'shop',auth:null,registration:false,user:null,profile:null,loading:true,error:null,track:null,courierGps:null,gpsWatch:null,gpsError:null,gpsLastSentAt:null,shareAdminLocation:false,gpsWakeLock:null,sending:false,poll:null,businessTrackingToken:null,businessTrackingData:null,couriers:[],courierMapOrderId:null,courierMapStage:'pickup',invitation:null,recipientStep:1,inviteDraft:{delivery_mode:'normal',paid:true},invites:[],inviteShareUrl:null,inviteBusy:false,manageOrderId:null,manageAction:null,adminHistoryId:null,adminHistoryItems:[],adminOrderFilter:'active',adminZones:[],fleet:[],fleetMap:null,stats:{},statsDays:30,cash:{},payouts:[],supportCases:[],verifications:[],deliveryOtpOrderId:null,supportOrderId:null,guestSupport:false,courierRatings:[],routeGroups:[],routeGroupIndex:null,desktopAlerts:false,authResetEmail:'',passwordRecovery:new URLSearchParams(location.search).has('rutaya_recovery')||location.hash.includes('type=recovery')};
 let toastTimer;
 
 
@@ -152,35 +152,59 @@ function inviteFormContent(){
 
 function recipientInvitationPage(){
  const i=model.invitation;
- if(!i)return '<div class="card"><h2>Enlace no encontrado</h2><p>Revisa el enlace que te envió la tienda o solicita uno nuevo.</p></div>';
- if(i.status==='completed')return '<div class="card recipient-success">'+icon('check',40)+'<h1>¡Datos enviados!</h1><p>'+e(i.business_name||'La tienda')+' ya recibió tus datos. Tu domicilio quedó registrado en RutaYa.</p>'+
- (i.tracking_token?'<a class="button primary wide" href="'+e(url('seguimiento/?token='+encodeURIComponent(i.tracking_token)))+'">'+icon('route',18)+' Consultar mi domicilio</a>':'')+'</div>';
- if(i.status==='revoked'||i.status==='expired')return '<div class="card"><h1>Este enlace ya no está disponible</h1><p>'+e(i.status==='expired'?'Pasaron 48 horas desde que la tienda lo creó.':'La tienda desactivó este enlace.')+' Pídele un enlace nuevo para completar tu entrega.</p></div>';
+ if(!i)return '<div class="card"><h2>Enlace no encontrado</h2><p>Pídele a la tienda que te envíe un enlace nuevo.</p></div>';
+ if(i.status==='completed')return '<div class="card recipient-success">'+icon('check',40)+'<h1>¡Listo! Recibimos tus datos</h1>'+
+ '<p>'+e(i.business_name||'La tienda')+' ya tiene tu dirección. Puedes consultar aquí cómo va tu pedido.</p>'+
+ (i.tracking_token?'<a class="button primary wide" href="'+e(url('seguimiento/?token='+encodeURIComponent(i.tracking_token)))+'">'+icon('route',18)+' Ver mi domicilio</a>':'')+'</div>';
+ if(i.status==='revoked'||i.status==='expired')return '<div class="card"><h1>Este enlace ya no funciona</h1><p>'+
+ e(i.status==='expired'?'El enlace venció.':'La tienda lo desactivó.')+' Pide a la tienda uno nuevo.</p></div>';
  const d=model.draft;
- const options=model.zones.map(z=>'<option value="'+e(z.name)+'" '+(d.dropoff_zone===z.name?'selected':'')+'>'+e(z.name)+(z.is_example===false?'':' · tarifa de prueba')+'</option>').join('');
- return '<div class="recipient-head"><span class="eyebrow">ENTREGA DE TU PEDIDO</span><h1>¿Dónde recibes tu pedido?</h1>'+
- '<p>'+e(i.business_name)+' te invita a indicar tus datos para que el domiciliario llegue a tu dirección.</p></div>'+
- '<div class="card"><h3>'+icon('shop',19)+' '+e(i.business_name)+'</h3><p><b>Tu pedido:</b> '+e(i.items_description)+'</p>'+
- '<p class="field-help">'+(i.paid?'Producto pagado.':'Producto pendiente de pago: '+money(i.amount_to_collect)+'.')+' Modalidad: '+e(modeName(i.delivery_mode))+'.</p></div>'+
- '<section class="card recipient-form"><h2>Completa tus datos</h2>'+
- '<label for="invite-recipient-name">Nombre de quien recibe</label>'+
- '<input id="invite-recipient-name" name="recipient_name" autocomplete="name" maxlength="180" placeholder="Nombre y apellido" value="'+e(d.recipient_name||'')+'">'+
- '<label for="invite-recipient-phone">Celular de contacto</label>'+
- '<input id="invite-recipient-phone" type="tel" name="recipient_phone" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="3XXXXXXXXX" value="'+e(d.recipient_phone||'')+'">'+
- pickerButton('dropoff','Ubicación exacta donde recibirás tu pedido',d)+
- '<div class="recipient-gps-instructions">'+icon('crosshair',18)+' <span>Pulsa <b>Elegir ubicación</b> y luego <b>Usar mi ubicación actual</b>. Si tu celular no permite GPS, busca tu dirección o marca la casa en el mapa.</span></div>'+
- '<p class="field-help">Si abriste este enlace dentro de WhatsApp y no aparece el permiso de ubicación, usa el menú de WhatsApp para <b>Abrir en Chrome o Safari</b>. Puedes <button type="button" class="recipient-copy-link" data-act="copyRecipientLink">copiar este enlace</button> y pegarlo en tu navegador.</p>'+
- '<label for="invite-dropoff-zone">¿En qué zona o sector de Popayán estás?</label>'+
- '<select id="invite-dropoff-zone" name="dropoff_zone"><option value="">Selecciona tu zona</option>'+options+'</select>'+
- '<div class="location-card space"><div class="inline-between"><span>Costo del domicilio</span><strong class="big-price">'+money(data.estimateFee(model.zones,d.dropoff_zone,i.delivery_mode))+'</strong></div>'+
- '<small>'+e(zoneEstimateNote(d.dropoff_zone))+' Consulta el costo con la tienda si tienes dudas.</small></div>'+
- '<label for="invite-delivery-notes">Referencias para encontrar tu casa (opcional)</label>'+
- '<textarea id="invite-delivery-notes" name="delivery_notes" maxlength="500" rows="2" placeholder="Ej. Casa de rejas negras, apartamento 302">'+e(d.delivery_notes||'')+'</textarea>'+
- '<p class="field-help">Al confirmar, enviarás estos datos a '+e(i.business_name)+' y al domiciliario asignado para realizar la entrega.</p>'+
- '<button class="button primary wide" data-act="completeInvite">'+icon('check',18)+' Confirmar mi dirección y enviar datos</button>'+
- '<p class="field-help">No necesitas registrarte. Este formulario solo puede enviarse una vez.</p></section>';
+ const step=Math.min(3,Math.max(1,model.recipientStep||1));
+ const options=model.zones.map(z=>'<option value="'+e(z.name)+'" '+(d.dropoff_zone===z.name?'selected':'')+'>'+
+ e(z.name)+(z.is_example===false?'':' (precio por confirmar)')+'</option>').join('');
+ const phone=String(d.recipient_phone||'').replace(/\D/g,'');
+ const address=d.dropoff?.address||'';
+ const summary='<div class="recipient-summary"><div><span>Recibe</span><b>'+e(d.recipient_name||'—')+'</b></div>'+
+ '<div><span>Celular</span><b>'+e(phone||'—')+'</b></div>'+
+ '<div><span>Dirección</span><b>'+e(address||'Sin confirmar')+'</b></div>'+
+ '<button type="button" class="button outline small" data-act="recipientEditAddress">'+icon('pin',15)+' Cambiar dirección</button></div>';
+ const formHead='<div class="recipient-progress" aria-label="Paso '+step+' de 3"><div class="recipient-progress-text"><strong>Paso '+step+' de 3</strong><span>'+
+ (step===1?'Tus datos':step===2?'Tu dirección':'Confirmar entrega')+'</span></div>'+
+ '<div class="recipient-progress-bars"><i class="'+(step>=1?'done':'')+'"></i><i class="'+(step>=2?'done':'')+'"></i><i class="'+(step>=3?'done':'')+'"></i></div></div>';
+ const step1='<h2>¿Quién va a recibir?</h2><p class="recipient-step-intro">Solo necesitamos tu nombre y número de celular.</p>'+
+ '<label for="invite-recipient-name">Tu nombre y apellido</label>'+
+ '<input id="invite-recipient-name" name="recipient_name" autocomplete="name" maxlength="180" placeholder="Ej. María López" value="'+e(d.recipient_name||'')+'">'+
+ '<label for="invite-recipient-phone">Tu número de celular</label>'+
+ '<input id="invite-recipient-phone" type="tel" name="recipient_phone" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="Ej. 300 123 4567" value="'+e(d.recipient_phone||'')+'">'+
+ '<button type="button" class="button primary wide recipient-next" data-act="recipientNext">'+icon('chevron',18)+' Siguiente: mi dirección</button>';
+ const step2='<h2>¿A dónde llevamos tu pedido?</h2><p class="recipient-step-intro">Lo más fácil es usar la ubicación de tu celular. Si estás en otro lugar, también puedes señalar tu casa en el mapa.</p>'+
+ pickerButton('dropoff','Marca el lugar de entrega',d)+
+ (d.dropoff?'<div class="recipient-location-ok">'+icon('check',19)+' <span><b>Dirección guardada</b><small>'+e(address)+'</small></span></div>':'')+
+ '<p class="recipient-step-tip">Al tocar el botón podrás elegir <b>Usar mi ubicación</b> o <b>Marcar en el mapa</b>.</p>'+
+ '<details class="recipient-help"><summary>¿No funciona la ubicación?</summary><p>Si abriste el enlace dentro de WhatsApp, abre el menú y elige Chrome o Safari. También puedes <button type="button" class="recipient-copy-link" data-act="copyRecipientLink">copiar este enlace</button> para abrirlo en tu navegador.</p></details>'+
+ '<div class="recipient-step-actions"><button type="button" class="button outline" data-act="recipientBack">Anterior</button>'+
+ (d.dropoff?'<button type="button" class="button primary" data-act="recipientNext">Siguiente</button>':'')+'</div>';
+ const fee=data.estimateFee(model.zones,d.dropoff_zone,i.delivery_mode);
+ const step3='<h2>Revisa antes de enviar</h2><p class="recipient-step-intro">Así sabrá el domiciliario a dónde llevar tu pedido.</p>'+
+ summary+
+ '<label for="invite-dropoff-zone">¿En qué sector o zona está tu dirección?</label>'+
+ '<select id="invite-dropoff-zone" name="dropoff_zone"><option value="">Elige tu zona</option>'+options+'</select>'+
+ '<p class="field-help">Si no sabes qué zona elegir, pregunta a la tienda antes de enviar.</p>'+
+ '<div class="recipient-fee"><span>Precio del domicilio</span><strong>'+money(fee)+'</strong>'+
+ '<small>'+e(zoneEstimateNote(d.dropoff_zone))+'</small></div>'+
+ '<label for="invite-delivery-notes">¿Cómo reconocer tu casa? (opcional)</label>'+
+ '<textarea id="invite-delivery-notes" name="delivery_notes" maxlength="500" rows="2" placeholder="Ej. Portón negro, segundo piso">'+e(d.delivery_notes||'')+'</textarea>'+
+ '<p class="field-help">Al enviar, la tienda recibirá estos datos para crear tu domicilio. No necesitas registrarte.</p>'+
+ '<div class="recipient-step-actions"><button type="button" class="button outline" data-act="recipientBack">Anterior</button>'+
+ '<button type="button" class="button primary" data-act="completeInvite">'+icon('check',18)+' Enviar mis datos</button></div>';
+ return '<div class="recipient-head"><span class="eyebrow">RUTAYA · ENTREGA A DOMICILIO</span><h1>¡Hola! Completa tu entrega</h1>'+
+ '<p>Son <b>3 pasos sencillos</b>. No necesitas crear una cuenta.</p></div>'+
+ '<div class="recipient-order-summary">'+icon('package',19)+' <span><b>'+e(i.business_name||'Tu tienda')+'</b>'+
+ '<small>'+e(i.items_description)+'</small>'+
+ '<small>'+(i.paid?'Producto pagado':'Pago del producto al recibir: '+money(i.amount_to_collect))+'</small></span></div>'+
+ '<section class="card recipient-form recipient-flow" aria-label="Formulario de entrega">'+formHead+
+ (step===1?step1:step===2?step2:step3)+'</section>';
 }
-
 
 function orderSupportButton(o,role){
  if(!model.user||role==='admin')return '';
@@ -782,6 +806,30 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
  b.disabled=true;await data.revokeDeliveryInvitation(token);
  if(model.inviteShareUrl===deliveryInviteUrl(token))model.inviteShareUrl=null;
  await refresh();notify('Enlace desactivado.');
+}else if(action==='recipientNext'){
+ if(page!=='confirmar'||model.invitation?.status!=='pending')throw Error('Este enlace ya no está activo');
+ const d=model.draft;
+ if(model.recipientStep===1){
+  if(String(d.recipient_name||'').trim().length<2)throw Error('Escribe tu nombre y apellido para continuar.');
+  const phone=String(d.recipient_phone||'').replace(/\D/g,'');
+  if(!/^(3\d{9}|573\d{9})$/.test(phone))throw Error('Escribe tu celular colombiano de diez números.');
+  model.recipientStep=2;
+ }else if(model.recipientStep===2){
+  if(!d.dropoff||!Number.isFinite(Number(d.dropoff.lat))||!Number.isFinite(Number(d.dropoff.lng))||String(d.dropoff.address||'').trim().length<5)
+   throw Error('Primero guarda la ubicación y la dirección de tu casa.');
+  model.recipientStep=3;
+ }
+ render();
+ document.querySelector('.recipient-flow')?.scrollIntoView({block:'start',behavior:'smooth'});
+}else if(action==='recipientBack'){
+ if(page!=='confirmar')return;
+ model.recipientStep=Math.max(1,(model.recipientStep||1)-1);
+ render();
+ document.querySelector('.recipient-flow')?.scrollIntoView({block:'start',behavior:'smooth'});
+}else if(action==='recipientEditAddress'){
+ if(page!=='confirmar')return;
+ model.recipientStep=2;render();
+ document.querySelector('.recipient-flow')?.scrollIntoView({block:'start',behavior:'smooth'});
 }else if(action==='copyRecipientLink'){
  if(page!=='confirmar')throw Error('Este botón solo funciona en el formulario de entrega');
  const link=location.href;
@@ -808,7 +856,7 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('[data-act]')
   model.invitation={...model.invitation,status:'completed',tracking_token:result.tracking_token};
   render();notify('Datos enviados correctamente. Tu domicilio quedó registrado.');
  }finally{model.sending=false}
-}else if(action==='businessForm'){if(model.store?.lat==null){notify('Primero configura la ubicación GPS de tu negocio.');model.showForm=false;model.view='cuenta';render();return}model.showForm=true;render()}else if(action==='closeModal'){model.showForm=false;model.auth=null;render()}else if(action==='pick'||action==='pickStore'){let isStore=action==='pickStore';if(isStore){model.store={...(model.store||{}),name:document.getElementById('store-name')?.value||'Bella Shop',address:document.getElementById('store-address')?.value||''}}let draft=page==='negocios'?model.businessDraft:model.draft;let field=b.dataset.field;let initial=isStore?(model.store?.lat!=null?{address:model.store.address,lat:model.store.lat,lng:model.store.lng}:null):draft[field]||null;let result=await openPicker({title:isStore?'Ubicación de mi negocio':field==='pickup'?'Punto de recogida':'Punto de entrega',starting:initial,knownStores:model.knownStores,recentPlaces:isStore?[]:recentPlacesFor(field),onSelect:null});if(result){if(isStore){model.store={...(model.store||{}),...result};}else draft[field]=result;render();}}else if(action==='editStore'){model.showForm='store';render()}else if(action==='saveStore'){const name=document.getElementById('store-name')?.value.trim(),address=document.getElementById('store-address')?.value.trim();if(!name||!address||model.store?.lat==null)throw Error('Indica el nombre, la dirección y el punto GPS de la tienda.');model.store=await data.saveStore({name,address,lat:model.store.lat,lng:model.store.lng});model.knownStores=await data.getPublicStores();model.showForm=false;notify('Ubicación del negocio guardada. Ahora se puede buscar por su nombre.');render()}else if(action==='submitCustomer'||action==='submitBusiness'){if(model.sending)return;model.sending=true;b.disabled=true;try{let bus=action==='submitBusiness',d=bus?model.businessDraft:model.draft;const p=bus?model.store:null;if(!d.items_description?.trim()||(!bus&&!d.pickup)||!d.dropoff)throw Error('Completa el detalle y selecciona los puntos de recogida y entrega en el mapa.');if(!d.recipient_name?.trim())throw Error('Falta el nombre del destinatario.');
+}else if(action==='businessForm'){if(model.store?.lat==null){notify('Primero configura la ubicación GPS de tu negocio.');model.showForm=false;model.view='cuenta';render();return}model.showForm=true;render()}else if(action==='closeModal'){model.showForm=false;model.auth=null;render()}else if(action==='pick'||action==='pickStore'){let isStore=action==='pickStore';if(isStore){model.store={...(model.store||{}),name:document.getElementById('store-name')?.value||'Bella Shop',address:document.getElementById('store-address')?.value||''}}let draft=page==='negocios'?model.businessDraft:model.draft;let field=b.dataset.field;let initial=isStore?(model.store?.lat!=null?{address:model.store.address,lat:model.store.lat,lng:model.store.lng}:null):draft[field]||null;let result=await openPicker({title:isStore?'Ubicación de mi negocio':field==='pickup'?'Punto de recogida':'Punto de entrega',starting:initial,knownStores:model.knownStores,recentPlaces:isStore?[]:recentPlacesFor(field),onSelect:null});if(result){if(isStore){model.store={...(model.store||{}),...result};}else{draft[field]=result;if(page==='confirmar'&&field==='dropoff')model.recipientStep=3;}render();}}else if(action==='editStore'){model.showForm='store';render()}else if(action==='saveStore'){const name=document.getElementById('store-name')?.value.trim(),address=document.getElementById('store-address')?.value.trim();if(!name||!address||model.store?.lat==null)throw Error('Indica el nombre, la dirección y el punto GPS de la tienda.');model.store=await data.saveStore({name,address,lat:model.store.lat,lng:model.store.lng});model.knownStores=await data.getPublicStores();model.showForm=false;notify('Ubicación del negocio guardada. Ahora se puede buscar por su nombre.');render()}else if(action==='submitCustomer'||action==='submitBusiness'){if(model.sending)return;model.sending=true;b.disabled=true;try{let bus=action==='submitBusiness',d=bus?model.businessDraft:model.draft;const p=bus?model.store:null;if(!d.items_description?.trim()||(!bus&&!d.pickup)||!d.dropoff)throw Error('Completa el detalle y selecciona los puntos de recogida y entrega en el mapa.');if(!d.recipient_name?.trim())throw Error('Falta el nombre del destinatario.');
 const phoneDigits=String(d.recipient_phone||'').replace(/\D/g,'');
 if(!/^3\d{9}$/.test(phoneDigits)&&!/^573\d{9}$/.test(phoneDigits))
  throw Error('Escribe el celular colombiano del destinatario (10 dígitos) para contacto y seguimiento.');if(!d.dropoff_zone)throw Error('Selecciona la zona de entrega para calcular la tarifa.');if(!bus&&model.service==='pickup'&&!d.shopper_name?.trim())throw Error('Indica a nombre de quién está el pedido.');if(d.paid===false&&!(Number(d.amount_to_collect)>0))throw Error('Debes indicar cuánto falta por pagar.');let input={source:bus?'business':'customer',service:bus?'business':model.service,items_description:d.items_description.trim(),pickup_name:bus?p.name:'',pickup_address:bus?p.address:d.pickup.address,pickup_lat:bus?p.lat:d.pickup.lat,pickup_lng:bus?p.lng:d.pickup.lng,dropoff_address:d.dropoff.address,dropoff_lat:d.dropoff.lat,dropoff_lng:d.dropoff.lng,dropoff_zone:d.dropoff_zone||'',recipient_name:d.recipient_name.trim(),recipient_phone:d.recipient_phone||'',shopper_name:bus?'':d.shopper_name||'',paid:d.paid!==false,amount_to_collect:d.paid===false?Math.round(+d.amount_to_collect):0,delivery_notes:d.delivery_notes||'',delivery_mode:d.delivery_mode||'normal',scheduled_at:d.scheduled_at?new Date(d.scheduled_at).toISOString():null};let order=await data.createOrder(input);model.showForm=false;if(bus)model.businessDraft={};else model.draft={};model.view='pedidos';await refresh();notify(bus?'¡Solicitud creada! Pulsa WhatsApp clienta para enviar el seguimiento.':'¡Pedido creado! Consulta su seguimiento en Mis pedidos.');}finally{model.sending=false}}else if(action==='trackBusiness'){model.businessTrackingToken=b.dataset.token;model.businessTrackingData=await data.getTracking(model.businessTrackingToken);render();document.querySelector('.business-live')?.scrollIntoView({behavior:'smooth',block:'nearest'})}else if(action==='closeBusinessTrack'){model.businessTrackingToken=null;model.businessTrackingData=null;render()}else if(action==='copyCourierInvite'){const link=url('repartidores/');const message='Regístrate como domiciliario en RutaYa: '+link+'\nCrea tu cuenta, envía tu solicitud y espera la aprobación para recibir servicios.';try{await navigator.clipboard.writeText(message);notify('Enlace de inscripción copiado. Envíalo por WhatsApp al domiciliario.')}catch{prompt('Copia y envía este enlace al repartidor:',message)}}else if(action==='applyCourier'){const phone=document.getElementById('courier-phone')?.value.trim();const vehicle=document.getElementById('courier-vehicle')?.value;if(!phone||!vehicle)throw Error('Indica tu celular y el tipo de vehículo.');b.disabled=true;await data.requestCourier(phone,vehicle);model.profile=await data.profile();render();notify('Solicitud enviada. La administración debe aprobarte antes de poder repartir.')}else if(action==='checkCourierApproval'){model.profile=await data.profile();if(model.profile?.role==='courier'&&model.profile.approved){model.orders=await data.listOrders('repartidores');model.shareAdminLocation=await data.courierAdminLocationConsent();notify('¡Tu cuenta ya está aprobada!')}else notify('Tu solicitud todavía está pendiente de aprobación.');render()}else if(action==='reviewCourier'){const userId=b.dataset.user;const approve=b.dataset.approve==='true';if(!model.profile?.is_admin&&!model.profile?.role==='admin')throw Error('No tienes autorización para aprobar domiciliarios.');if(!confirm(approve?'¿Aprobar a este domiciliario para recibir y aceptar pedidos en RutaYa? Comprueba primero su identidad.':'¿Suspender el acceso de este domiciliario a nuevos pedidos?'))return;b.disabled=true;await data.reviewCourier(userId,approve);model.couriers=await data.listCouriers();render();notify(approve?'Domiciliario aprobado y habilitado.':'Acceso del domiciliario suspendido.')}else if(action==='copyTrack'){let link=url('seguimiento/?token='+encodeURIComponent(b.dataset.token));try{await navigator.clipboard.writeText(link);notify('Enlace copiado. Compártelo con el cliente.')}catch{prompt('Copia el enlace de seguimiento:',link)}}else if(action==='courierGps'){
