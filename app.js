@@ -416,16 +416,59 @@ function orderManageButtons(o,role){
  if(canCancel)buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="cancel">'+icon('close',16)+' Cancelar</button>');
  if(role==='repartidores'&&['accepted','at_pickup'].includes(o.status)&&o.courier_id===model.user?.id)
   buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="release">'+icon('arrowLeft',16)+' Liberar servicio</button>');
+ if(role==='admin'&&isAdmin()&&o.courier_id&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status)){
+  buttons.push('<button class="button primary small admin-deliver-btn" data-act="manageOrder" data-id="'+e(o.id)+
+   '" data-operation="adminDeliver">'+icon('check',16)+' Marcar entregado</button>');
+  buttons.push('<button class="button outline small" data-act="manageOrder" data-id="'+e(o.id)+
+   '" data-operation="adminAdvance">'+icon('route',16)+' Corregir etapa</button>');
+ }
  if(role==='admin'&&isAdmin()&&['pending','accepted','at_pickup','picked_up','at_dropoff'].includes(o.status))
   buttons.push('<button class="button primary small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="assign">'+icon('user',16)+' '+(o.courier_id?'Cambiar repartidor':'Asignar repartidor')+'</button>');
  if(role==='admin'&&isAdmin()&&['accepted','at_pickup','picked_up','at_dropoff'].includes(o.status))
   buttons.push('<button class="button tonal small" data-act="manageOrder" data-id="'+e(o.id)+'" data-operation="adminRelease">'+icon('route',16)+' Liberar pedido</button>');
  return buttons.join('');
 }
+function adminManualStatusModal(o,operation){
+ const finished=operation==='adminDeliver';
+ const order=["accepted","at_pickup","picked_up","at_dropoff","delivered"];
+ const labels={accepted:"Asignado",at_pickup:"Llegó al negocio",picked_up:"Paquete recogido",
+ at_dropoff:"Llegó a la clienta",delivered:"Entregado"};
+ const pos=order.indexOf(o.status);
+ const available=order.slice(pos+1);
+ const chooser=finished?'<p class="ry-manual-status-target">Nuevo estado: <strong>Entregado</strong></p>':
+ '<label for="ry-manual-status">¿Qué ocurrió realmente?</label>'+
+ '<select id="ry-manual-status"><option value="">Selecciona la nueva etapa</option>'+
+ available.map(x=>'<option value="'+x+'">'+e(labels[x])+'</option>').join('')+'</select>';
+ const headline=finished?'Confirmar entrega desde Administración':'Corregir etapa del domicilio';
+ const warning=finished?'Solo usa esta opción si el paquete realmente se entregó. No exige GPS ni código porque es una intervención manual verificada.':
+ 'Solo puedes avanzar a una etapa que ya ocurrió de verdad. Esta acción no finge un GPS o código de entrega.';
+ return modal(headline,
+ '<div class="ry-manual-warning">'+icon('alert',20)+' <span>'+e(warning)+'</span></div>'+
+ '<p><b>Pedido:</b> '+e(o.items_description||'Envío')+'</p>'+
+ '<p><b>Destinataria:</b> '+e(o.recipient_name||'Sin nombre')+'</p>'+
+ '<p><b>Estado actual:</b> '+e(labels[o.status]||o.status)+'</p>'+
+ chooser+
+ '<label for="ry-manual-method">¿Cómo lo comprobaste?</label>'+
+ '<select id="ry-manual-method"><option value="">Selecciona la forma de verificación</option>'+
+ '<option value="recipient_phone">Hablé con quien recibió por teléfono</option>'+
+ '<option value="recipient_whatsapp">Quien recibió lo confirmó por WhatsApp</option>'+
+ '<option value="in_person">Comprobé la entrega personalmente</option>'+
+ '<option value="other_evidence">Tengo otra evidencia comprobable</option></select>'+
+ '<label for="ry-manual-reason">¿Por qué necesitas corregirlo?</label>'+
+ '<textarea id="ry-manual-reason" rows="3" maxlength="500" placeholder="Ej. El repartidor entregó el paquete, pero su GPS no funcionó. Confirmé la entrega por teléfono."></textarea>'+
+ '<label class="admin-custody ry-manual-confirm"><input id="ry-manual-confirm" type="checkbox"> '+
+ (finished?'Confirmo que comprobé que el destinatario recibió físicamente el paquete.':
+ 'Confirmo que comprobé que esta etapa ya ocurrió realmente.')+'</label>'+
+ '<p class="field-help">RutaYa registrará tu cuenta, fecha, estado anterior, nuevo estado y motivo en el historial. No se envían mensajes automáticos ni se mueven fondos.</p>',
+ '<button class="button outline" data-act="closeManage">Volver</button>'+
+ '<button class="button primary" data-act="confirmManage" data-id="'+e(o.id)+'">'+icon('check',16)+' '+
+ (finished?'Confirmar entrega real':'Guardar estado comprobado')+'</button>');
+}
 function manageOrderModal(){
  const o=model.orders.find(x=>x.id===model.manageOrderId);
  if(!o)return '';
  const operation=model.manageAction;
+ if(operation==='adminDeliver'||operation==='adminAdvance')return adminManualStatusModal(o,operation);
  const isCancel=operation==='cancel',isRelease=operation==='release',isAssign=operation==='assign',isAdminRelease=operation==='adminRelease';
  const title=isCancel?'Cancelar domicilio':isRelease?'Liberar servicio':isAdminRelease?'Liberar pedido desde administración':isAssign?'Asignar o cambiar repartidor':'Gestionar pedido';
  const afterPickup=isAdmin()&&['picked_up','at_dropoff'].includes(o.status);
@@ -1069,7 +1112,7 @@ if(!/^3\d{9}$/.test(phoneDigits)&&!/^573\d{9}$/.test(phoneDigits))
  model.adminHistoryId=null;model.adminHistoryItems=[];render();
 }else if(action==='manageOrder'){
  const operation=b.dataset.operation;
- if(!['cancel','release','reassign','assign','adminRelease'].includes(operation))throw Error('Operación no válida');
+ if(!['cancel','release','reassign','assign','adminRelease','adminDeliver','adminAdvance'].includes(operation))throw Error('Operación no válida');
  model.manageAction=operation;model.manageOrderId=id;render();
 }else if(action==='closeManage'){
  model.manageAction=null;model.manageOrderId=null;render();
@@ -1084,7 +1127,21 @@ if(!/^3\d{9}$/.test(phoneDigits)&&!/^573\d{9}$/.test(phoneDigits))
  }
  model.sending=true;b.disabled=true;
  try{
-  if(op==='cancel')await data.cancelOrder(id,reason);
+  if(op==='adminDeliver'||op==='adminAdvance'){
+   if(page!=='admin'||!isAdmin())throw Error('Acceso exclusivo de Administración');
+   const target=op==='adminDeliver'?'delivered':document.getElementById('ry-manual-status')?.value;
+   const method=document.getElementById('ry-manual-method')?.value;
+   const confirmed=document.getElementById('ry-manual-confirm')?.checked===true;
+   if(!target)throw Error('Elige qué etapa se completó realmente');
+   if(!method)throw Error('Indica cómo verificaste esta etapa');
+   if(reason.length<10)throw Error('Explica el problema en al menos diez caracteres');
+   if(!confirmed)throw Error('Debes confirmar que comprobaste físicamente la etapa o la entrega');
+   if(!confirm(target==='delivered'
+    ?'¿Confirmas que el paquete SÍ fue recibido? RutaYa marcará este domicilio como ENTREGADO SIN GPS NI CÓDIGO, y guardará tu intervención.'
+    :'¿Confirmas que esta etapa ocurrió realmente? Quedará registrada como una intervención manual de Administración.'))return;
+   await data.adminOverrideOrderStatus(id,target,reason,method,true);
+  }
+  else if(op==='cancel')await data.cancelOrder(id,reason);
   else if(op==='release')await data.releaseOrder(id,reason);
   else if(op==='reassign')await data.reassignOrder(id,reason);
   else if(op==='adminRelease'){
@@ -1104,7 +1161,7 @@ if(!/^3\d{9}$/.test(phoneDigits)&&!/^573\d{9}$/.test(phoneDigits))
   else throw Error('Operación inválida');
   model.manageAction=null;model.manageOrderId=null;
   await refresh();
-  notify(op==='cancel'?'Pedido cancelado.':op==='release'?'Servicio liberado para otro domiciliario.':op==='assign'?'Domiciliario asignado o cambiado.':op==='adminRelease'?'Pedido liberado y disponible para otra asignación.':'Pedido devuelto a disponibles.');
+  notify(op==='adminDeliver'?'Entrega marcada como confirmada manualmente por Administración.':op==='adminAdvance'?'Etapa actualizada y auditada desde Administración.':op==='cancel'?'Pedido cancelado.':op==='release'?'Servicio liberado para otro domiciliario.':op==='assign'?'Domiciliario asignado o cambiado.':op==='adminRelease'?'Pedido liberado y disponible para otra asignación.':'Pedido devuelto a disponibles.');
  }finally{model.sending=false}
 }else if(action==='setFee'){const raw=document.getElementById('fee-'+id).value;if(raw===''||+raw<0)throw Error('Escribe una tarifa válida.');await data.setOrderFee(id,Math.round(+raw));await refresh();notify('Tarifa actualizada.')}else if(action==='addZone'){
  if(!isAdmin())throw Error('Solo administración puede agregar zonas');
